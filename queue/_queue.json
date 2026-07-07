@@ -11,7 +11,7 @@
       "slug": "modelo-datos-motor-validacion",
       "status": "READY_FOR_ARCH",
       "spec": "specs/modelo-datos-motor-validacion.md",
-      "notes": "Asume Turso/libSQL (ADR-003) como motor de datos, max 5 usuarios concurrentes. Cubre modelo de datos (articulos, cursos, participantes, asistencias) partiendo de un boceto con brechas criticas identificadas (falta campo de participantes cargados en SC, modulo_horario sin horas de reloj, sin duracion de colacion, sin maquina de estados de curso, sin campos de auditoria, entre otras — ver seccion 'Observaciones sobre el boceto' del spec) y formaliza 3 reglas de validacion preventiva (choque de horarios, cobertura de horas del articulo, calce de participantes vs SC) como candidatas a RN-xxx pendientes de aprobacion explicita del dueño del proyecto (no se escribieron en docs/business-rules.md, protegido por P2 de AGENTS.md). Fuera de alcance: Excel poka-yoke, import CSV Teams, flujos borde (curso sin SC, carga retroactiva por lotes), generacion de PDF."
+      "notes": "Asume Turso/libSQL (ADR-003), max 5 usuarios concurrentes. Modelo de datos y motor de validacion resueltos: horarios explicitos (hora_inicio/hora_fin), calculo de horas por curso completo, choque de horario como alerta no bloqueante, roster completo de RUT esperados por SC (sc_participantes_esperados). RN-001, RN-002 y RN-003 aprobadas por el dueño y creadas en docs/business-rules.md (2026-07-07). Sin preguntas abiertas bloqueantes. Fuera de alcance: Excel poka-yoke, import CSV Teams, flujos borde (curso sin SC, carga retroactiva por lotes), entidad OTEC, generacion de PDF."
     }
   ]
 }

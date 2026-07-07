@@ -124,10 +124,13 @@ CREATE TABLE asistencias (
 );
 
 -- Nueva entidad: lista de RUT esperados por SC (decision del dueño:
--- roster completo, no solo un conteo).
+-- roster completo, no solo un conteo). Carga manual del coordinador OTIC
+-- al vincular la SC al curso (ver "Preguntas abiertas" -> resuelta).
 CREATE TABLE sc_participantes_esperados (
     numero_sc TEXT NOT NULL,
     rut_participante TEXT NOT NULL,
+    cargado_en TEXT NOT NULL DEFAULT (datetime('now')),
+    cargado_por TEXT NOT NULL,
     PRIMARY KEY (numero_sc, rut_participante)
 );
 ```
@@ -170,9 +173,19 @@ curso: si existe al menos un `rut_participante` con asistencia registrada
 (`Presente` o `Ausente`) que no figura en `sc_participantes_esperados` para
 el `numero_sc` del curso, el curso pasa a estado
 `'Pendiente Regularizacion SC'`. Si `numero_sc` es `NULL` (curso sin SC
-previa), esta regla no aplica todavía — la interacción exacta con ese caso
-se define en el spec futuro del flujo borde "curso sin SC previa" (fuera de
-alcance aquí).
+previa), el curso **no puede alcanzar el estado `'Cerrado'`** — queda
+detenido en `'Pendiente Cierre'` hasta que se vincule una SC. Al vincularla
+(acción del flujo borde "curso sin SC previa", fuera de alcance aquí), se
+cargan los RUT esperados en `sc_participantes_esperados` y recién ahí se
+evalúa la Regla C (y retroactivamente la Regla A, tal como describe el
+documento original para ese flujo). Esta resolución es provisional: el
+diseño completo de "vincular SC" queda para el spec de ese flujo borde,
+pero ya fija el comportamiento mínimo esperado.
+
+**Carga de `sc_participantes_esperados`:** manual, por el coordinador OTIC,
+al momento de asociar/vincular la SC al curso (ya sea al crear el curso con
+SC ya emitida, o al ejecutar "Vincular SC" en el flujo borde). No hay
+ingestión automática desde ningún sistema de CODELCO en este spec.
 
 **Concurrencia:** dado que la Regla A es una alerta no bloqueante, una
 condición de carrera entre dos inserciones casi simultáneas (máximo 5
@@ -200,28 +213,22 @@ como riesgo de baja severidad, sin mitigación especial en este spec.
 ## Preguntas abiertas
 
 Todas las preguntas de la versión anterior de este spec quedaron resueltas
-arriba (ver "Decisiones tomadas" y las notas junto a cada campo/regla),
-excepto:
+(ver "Decisiones tomadas", las notas junto a cada campo/regla, y la
+resolución de la Regla C sobre `numero_sc IS NULL` y la carga de
+`sc_participantes_esperados`, arriba). No quedan preguntas abiertas
+bloqueantes para este spec. El único punto marcado explícitamente como
+"provisional" (el comportamiento exacto de "vincular SC") se confirma o
+ajusta cuando se escriba el spec del flujo borde "curso sin SC previa".
 
-- **Interacción de la Regla C con `numero_sc IS NULL`**: depende del diseño
-  del flujo borde "curso sin SC previa", que es un spec futuro. No bloquea
-  la implementación del resto de este spec.
-- **Quién carga y mantiene `sc_participantes_esperados`**: no está
-  definido en qué momento del flujo se llena esta tabla (¿al emitir la SC?
-  ¿el coordinador la transcribe a mano?). Relacionado con la entidad OTEC
-  pendiente; se recomienda resolverlo antes de implementar la Regla C.
+## Reglas de negocio (aprobadas: RN-001, RN-002, RN-003)
 
-## Reglas de negocio candidatas (pendientes de aprobación explícita como RN-xxx)
+Estas tres reglas fueron candidatas directas a `docs/business-rules.md`
+según `docs/CONVENTIONS.md`. El dueño del proyecto las aprobó explícitamente
+(2026-07-07); quedaron creadas como **RN-001**, **RN-002** y **RN-003** en
+`docs/business-rules.md`, con el mismo enunciado redactado aquí. Se
+mantiene el texto en este spec como referencia de origen.
 
-Estas tres reglas son candidatas directas a `docs/business-rules.md` según
-`docs/CONVENTIONS.md`. `pkf-spec` no tiene permitido crearlas ni
-modificarlas ahí (P2 de `AGENTS.md`: las RN-xxx solo se crean o modifican
-con instrucción explícita del dueño del proyecto). Quedan redactadas aquí,
-ya con su enunciado final resuelto, para que el dueño del proyecto las
-apruebe explícitamente antes de que se trasladen a `business-rules.md` con
-su número `RN-xxx` real.
-
-### Candidata A — Detección de choque de horarios
+### RN-001 (Candidata A) — Detección de choque de horarios
 
 **Regla:** Un participante (RUT) no puede tener asistencia registrada en dos
 cursos distintos, en la misma fecha, con rangos horarios `[hora_inicio,
@@ -234,7 +241,7 @@ cursos registrados en este mismo sistema.
 **Origen:** Documento de propuesta técnica original del sistema (motor de
 validación preventiva de asistencia).
 
-### Candidata B — Cobertura de horas obligatorias del artículo
+### RN-002 (Candidata B) — Cobertura de horas obligatorias del artículo
 
 **Regla:** Antes de permitir el cierre de un curso, la suma de horas netas
 de sus sesiones (duración de cada sesión menos los minutos de colación
@@ -246,7 +253,7 @@ curso queda bloqueado.
 **Origen:** Documento de propuesta técnica original del sistema (motor de
 validación preventiva de asistencia).
 
-### Candidata C — Calce de participantes reales vs. Solicitud de Compra
+### RN-003 (Candidata C) — Calce de participantes reales vs. Solicitud de Compra
 
 **Regla:** Por cada Solicitud de Compra (SC) se mantiene la lista de RUT de
 participantes esperados. Al intentar cerrar un curso, si existe al menos un
