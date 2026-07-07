@@ -110,3 +110,57 @@ def test_allows_read_only_mention_of_protected_file():
 def test_ignores_non_bash_tool():
     result = run_hook("cualquier cosa", tool_name="Write")
     assert result.returncode == 0
+
+
+def test_allows_git_commit_mentioning_protected_file_in_message():
+    """Regresion: un commit real de esta sesion quedo bloqueado porque su
+    mensaje mencionaba AGENTS.md y contenia '<noreply@anthropic.com>' -- el
+    '>' del email se interpreto como token de escritura. git commit nunca
+    escribe a un path del working tree via redireccion de shell; el
+    contenido del mensaje es texto opaco."""
+    message = (
+        "Actualiza AGENTS.md seccion 7.\n\n"
+        "Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
+    )
+    result = run_hook(f"git commit -m {message!r}")
+    assert result.returncode == 0
+    assert result.stderr == ""
+
+
+def test_allows_git_commit_mentioning_write_tool_names_in_message():
+    """Regresion: un commit que describe en prosa lo que hace este mismo
+    hook (ej. menciona 'sed -i' como ejemplo) no debe bloquearse."""
+    message = "Documenta sed -i y tee como ejemplos en AGENTS.md"
+    result = run_hook(f"git commit -m {message!r}")
+    assert result.returncode == 0
+
+
+def test_git_commit_with_file_flag_is_unaffected():
+    result = run_hook("git commit -F /tmp/mensaje-de-commit.txt")
+    assert result.returncode == 0
+
+
+def test_angle_bracket_email_does_not_trigger_redirect_false_positive():
+    """Regresion: '<email@dominio.com>' no debe contar como redireccion de
+    shell solo porque contiene un '>' -- se exige espacio/inicio de linea
+    antes del '>' (forma tipica de 'cmd > archivo')."""
+    result = run_hook("echo 'contacto: <alguien@dominio.com> ver AGENTS.md'")
+    assert result.returncode == 0
+
+
+def test_committee_word_does_not_trigger_tee_false_positive():
+    """Regresion: 'committee' contiene 'tee' como substring; no debe
+    bloquear un comando de solo lectura/prosa sobre AGENTS.md."""
+    result = run_hook("echo 'el committee reviso AGENTS.md ayer'")
+    assert result.returncode == 0
+
+
+def test_real_redirect_to_protected_file_still_blocked_after_fix():
+    """Los fixes de falsos positivos no deben debilitar la deteccion real:
+    un '>' precedido de espacio (forma normal de un redirect) sigue
+    bloqueando."""
+    result = run_hook("cat notas.txt > AGENTS.md")
+    assert result.returncode == 2
+
+    result = run_hook("echo 'x' | tee AGENTS.md")
+    assert result.returncode == 2

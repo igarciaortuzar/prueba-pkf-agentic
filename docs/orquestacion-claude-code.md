@@ -133,10 +133,18 @@ invocación de `Bash` y decide, en orden:
 3. **Excepción 2 — script sancionado:** una invocación (también sin
    encadenar) de `python tools/add_business_rule.py ...` se permite; la
    validación de fondo la hace el script mismo, no el hook.
-4. **Caso general:** si el comando menciona una ruta protegida, no calzó
+4. **Excepción 3 — `git commit`:** cualquier `git commit ...` se permite sin
+   analizar el resto del comando. Un commit nunca escribe directamente sobre
+   un path del working tree vía redirección de shell; el mensaje es texto
+   opaco que legítimamente puede mencionar `AGENTS.md` o contener un `>`
+   (p. ej. `Co-Authored-By: ... <email>`). Agregada tras un falso positivo
+   real detectado minutos después de desplegar este hook (ver
+   `docs/friction-log.md`).
+5. **Caso general:** si el comando menciona una ruta protegida, no calzó
    ninguna excepción, y además contiene un token que "parece" escritura
-   (`>`, `>>`, `sed -i`, `tee`, `cp `, `install `, `rsync`, `dd `, `perl -i`,
-   `truncate`, o un `mv`/`git mv` que no calzó exactamente la excepción 1),
+   (`sed -i`, `cp `, `install `, `rsync`, `dd `, `perl -i`, `truncate`, un
+   `>`/`>>` precedido de espacio o inicio de línea, `tee` como palabra
+   completa, o un `mv`/`git mv` que no calzó exactamente la excepción 1),
    se bloquea con código de salida 2. Si solo hay mención sin token de
    escritura (`cat docs/business-rules.md`, `git diff AGENTS.md`), se
    permite — es lectura.
@@ -151,6 +159,16 @@ p. ej. `cat docs/business-rules.md | tee /tmp/copia.md`). Ver ADR-006,
 sección "Consecuencias", para el detalle completo. No cubre comandos
 destructivos (`rm -rf`, `git push --force`) — eso sigue siendo una idea
 separada, no incluida (ver sección 6).
+
+**Fix aplicado tras uso real (mismo día del despliegue):** `>` y `tee` se
+buscaban originalmente como substring libre en cualquier posición. Eso
+bloqueaba `git commit` con mensajes legítimos que mencionaban un archivo
+protegido junto a `<email@dominio>` (el `>` del email) o la palabra
+"committee" (contiene "tee"). Se corrigió exigiendo que `>`/`>>` estén
+precedidos por espacio o inicio de línea, y que `tee` sea palabra completa
+— y se agregó la excepción 3 de arriba como defensa adicional para
+`git commit`. Ver `docs/friction-log.md`, entrada 2026-07-07 ("El hook de
+protección de Bash bloqueó un commit legítimo").
 
 **`tools/add_business_rule.py`:** único camino sancionado para crear u
 obsoletar una RN vía `Bash` dentro de una sesión de Claude Code, invocado con

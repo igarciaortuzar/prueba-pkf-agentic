@@ -175,3 +175,42 @@ la fricción documentada, no toma la decisión.
 > (P2 y sección 5 de `AGENTS.md`); el hook `Stop` ya está activo, pero el
 > texto que le da contenido accionable al recordatorio aún no vive en
 > `AGENTS.md`.
+
+---
+
+### 2026-07-07 — El hook de protección de Bash bloqueó un commit legítimo
+**Proyecto:** Sistema de Validación Preventiva y Libro de Clases Digital (pipeline PKF con Claude Code).
+**Qué pasó:** minutos después de desplegar `protect_bash_writes.py` (ADR-006),
+el primer `git commit` real de la sesión quedó bloqueado. El mensaje del
+commit mencionaba `AGENTS.md` en prosa y terminaba con el trailer
+obligatorio `Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>` — el
+hook interpretó el `>` de `<noreply@anthropic.com>` como un token de
+escritura (`WRITE_TOKENS` incluía `">"` como substring libre, sin exigir
+contexto de redirección real). Se detectó también un segundo riesgo latente
+de la misma clase: `"tee"` como substring libre habría bloqueado cualquier
+commit que mencionara la palabra "committee" junto a un archivo protegido.
+Dado que el formato `Co-Authored-By: ... <email>` es obligatorio en *todos*
+los commits de esta sesión, y que los commits sobre este propio framework
+mencionan constantemente `AGENTS.md`/`business-rules.md`/`ADR-xxx` por
+nombre, este falso positivo habría bloqueado una fracción grande de la
+actividad normal de commits del proyecto, no un caso raro.
+**Frecuencia:** primera vez, pero con alta probabilidad de recurrencia si no
+se corregía (se confirmó el patrón general al revisar el código, no solo el
+caso puntual).
+**Solución candidata:** corregido en el mismo momento — no se dejó como
+fricción abierta:
+- `>`/`>>` ahora exigen estar precedidos por espacio o inicio de línea
+  (forma típica de una redirección real, `cmd > archivo`), en vez de
+  matchear como substring en cualquier posición.
+- `tee` ahora exige ser palabra completa (`\btee\b`), no substring.
+- Se agregó una tercera excepción explícita: `git commit` se permite sin
+  analizar el resto del comando, porque el mensaje es texto opaco, no una
+  escritura real a un path del working tree vía shell.
+- 6 tests de regresión nuevos en `tests/test_protect_bash_writes.py`
+  cubriendo estos casos exactos.
+
+> Implementado 2026-07-07, en la misma sesión que introdujo el bug (ver
+> `docs/orquestacion-claude-code.md`, sección 5, "Fix aplicado tras uso
+> real"). Ejemplo concreto de por qué vale la pena verificar un hook nuevo
+> contra uso real inmediatamente después de desplegarlo, no solo contra los
+> casos de prueba que motivaron su diseño original.

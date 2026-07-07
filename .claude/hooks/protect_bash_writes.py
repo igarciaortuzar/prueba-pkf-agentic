@@ -27,11 +27,20 @@ Logica (en orden, ver ADR-006 seccion "Decision" > "1. Logica de deteccion"):
 3. Excepcion 2 - script sancionado: invocacion (sin encadenar) de
    `python tools/add_business_rule.py ...`. Se permite; la validacion de
    fondo la hace el propio script.
-4. Caso general: si hay mencion de archivo protegido y no calzo ninguna
+4. Excepcion 3 - `git commit`: un commit nunca escribe directamente sobre
+   un path del working tree via redireccion de shell -- el mensaje del
+   commit es texto opaco (puede legitimamente mencionar "AGENTS.md" o
+   contener un ">" dentro de un "Co-Authored-By: ... <email>", como en
+   este mismo repo). Se permite sin analizar el resto del comando. Agregada
+   tras un falso positivo real detectado en esta sesion (ver
+   docs/friction-log.md).
+5. Caso general: si hay mencion de archivo protegido y no calzo ninguna
    excepcion, se bloquea (exit 2) si ademas aparece un token que "parece"
    una escritura (>, >>, sed -i, tee, cp , etc., o un mv/git mv que no
-   calzo exactamente la excepcion 1). Si solo hay mencion sin token de
-   escritura (lectura), se permite.
+   calzo exactamente la excepcion 1). `>` y `tee` exigen contexto de
+   posicion tipica de shell (precedidos por inicio de linea/espacio, o
+   palabra completa) para no disparar con "<email@x.com>" o "committee".
+   Si solo hay mencion sin token de escritura (lectura), se permite.
 """
 import json
 import re
@@ -69,14 +78,20 @@ ADR_PROMOTION_RE = re.compile(
 # Excepcion 2: invocacion del script sancionado para crear/obsoletar RN.
 ADD_BUSINESS_RULE_RE = re.compile(r"^(python3?|py)\s+tools/add_business_rule\.py\b.*$")
 
+# Excepcion 3: git commit. El mensaje es texto opaco -- puede mencionar
+# archivos protegidos o contener un ">" (ej. "Co-Authored-By: ... <email>")
+# sin que eso sea una escritura real a un path del working tree.
+GIT_COMMIT_RE = re.compile(r"^git\s+commit\b")
+
 # Separadores de shell que descalifican una linea de comando para cualquiera
-# de las dos excepciones (deben ser un unico comando, no encadenado).
+# de las excepciones de un solo comando (deben ser un unico comando, no
+# encadenado).
 _CHAINING_TOKENS = (";", "&&", "||", "|", "`", "$(")
 
+# Tokens de escritura que son suficientemente distintivos como substring
+# libre (baja probabilidad de aparecer por accidente en prosa normal).
 WRITE_TOKENS = (
-    ">",  # cubre tambien >> como substring
     "sed -i",
-    "tee",
     "cp ",
     "install ",
     "rsync",
@@ -84,6 +99,13 @@ WRITE_TOKENS = (
     "perl -i",
     "truncate",
 )
+
+# ">"/"tee" necesitan contexto de posicion tipica de shell: un "<email@x>"
+# o la palabra "committee" no deben contar como escritura. Se exige que ">"
+# venga precedido de inicio de linea o espacio (como en "cmd > file" o
+# "cmd >> file"), y que "tee" sea una palabra completa.
+REDIRECT_RE = re.compile(r"(?:^|\s)>{1,2}")
+TEE_RE = re.compile(r"\btee\b")
 
 
 def _is_single_command(command: str) -> bool:
@@ -112,8 +134,18 @@ def _matches_add_business_rule_exception(command: str) -> bool:
     return bool(ADD_BUSINESS_RULE_RE.match(command.strip()))
 
 
+def _matches_git_commit_exception(command: str) -> bool:
+    if not _is_single_command(command):
+        return False
+    return bool(GIT_COMMIT_RE.match(command.strip()))
+
+
 def _looks_like_write(command: str) -> bool:
     if any(tok in command for tok in WRITE_TOKENS):
+        return True
+    if REDIRECT_RE.search(command):
+        return True
+    if TEE_RE.search(command):
         return True
     # mv/git mv que no calzo exactamente con la excepcion 1 tambien cuenta
     # como escritura (renombrar/mover un archivo protegido).
@@ -146,7 +178,12 @@ def main() -> None:
     if _matches_add_business_rule_exception(command):
         sys.exit(0)
 
-    # 4. Caso general: bloquea solo si ademas parece una escritura.
+    # 4. Excepcion 3: git commit (mensaje es texto opaco, no una escritura
+    # real a un path del working tree).
+    if _matches_git_commit_exception(command):
+        sys.exit(0)
+
+    # 5. Caso general: bloquea solo si ademas parece una escritura.
     if _looks_like_write(command):
         print(
             "[PKF] BLOQUEADO: este comando de Bash parece escribir "
