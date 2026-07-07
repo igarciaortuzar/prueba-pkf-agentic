@@ -133,21 +133,19 @@ invocación de `Bash` y decide, en orden:
 3. **Excepción 2 — script sancionado:** una invocación (también sin
    encadenar) de `python tools/add_business_rule.py ...` se permite; la
    validación de fondo la hace el script mismo, no el hook.
-4. **Excepción 3 — `git commit`:** cualquier `git commit ...` se permite sin
-   analizar el resto del comando. Un commit nunca escribe directamente sobre
-   un path del working tree vía redirección de shell; el mensaje es texto
-   opaco que legítimamente puede mencionar `AGENTS.md` o contener un `>`
-   (p. ej. `Co-Authored-By: ... <email>`). Agregada tras un falso positivo
-   real detectado minutos después de desplegar este hook (ver
-   `docs/friction-log.md`).
-5. **Caso general:** si el comando menciona una ruta protegida, no calzó
-   ninguna excepción, y además contiene un token que "parece" escritura
-   (`sed -i`, `cp `, `install `, `rsync`, `dd `, `perl -i`, `truncate`, un
-   `>`/`>>` precedido de espacio o inicio de línea, `tee` como palabra
-   completa, o un `mv`/`git mv` que no calzó exactamente la excepción 1),
-   se bloquea con código de salida 2. Si solo hay mención sin token de
-   escritura (`cat docs/business-rules.md`, `git diff AGENTS.md`), se
-   permite — es lectura.
+4. **Caso general:** si el comando menciona una ruta protegida, no calzó
+   ninguna excepción, y además contiene un token que "parece" escritura, se
+   bloquea con código de salida 2. `>`/`>>` y `tee` se verifican por su
+   **destino real** (`_redirect_targets`/`_tee_targets` en
+   `protect_bash_writes.py`: solo bloquean si el archivo inmediatamente
+   después de `>`/`tee` es uno protegido, no si el archivo protegido
+   aparece mencionado en cualquier otra parte del comando). El resto de los
+   tokens (`sed -i`, `cp `, `install `, `rsync`, `dd `, `perl -i`,
+   `truncate`, o un `mv`/`git mv` que no calzó exactamente la excepción 1)
+   siguen siendo mención+substring — riesgo vigilado, ver "Límites
+   honestos" abajo. Si solo hay mención sin token de escritura
+   (`cat docs/business-rules.md`, `git diff AGENTS.md`), se permite — es
+   lectura.
 
 **Límites honestos (no es un guardrail perfecto):** es una heurística de
 texto sobre el string del comando, no una señal perfecta como el `file_path`
@@ -164,25 +162,41 @@ separada, no incluida (ver sección 6).
 buscaban originalmente como substring libre en cualquier posición. Eso
 bloqueaba `git commit` con mensajes legítimos que mencionaban un archivo
 protegido junto a `<email@dominio>` (el `>` del email) o la palabra
-"committee" (contiene "tee"). Se corrigió exigiendo que `>`/`>>` estén
-precedidos por espacio o inicio de línea, y que `tee` sea palabra completa
-— y se agregó la excepción 3 de arriba como defensa adicional para
-`git commit`. Minutos después, el mismo patrón apareció de nuevo: `git add`
-contiene `dd ` como substring de `add `, bloqueando el comando de git más
-usado en este flujo cada vez que la lista de archivos incluía uno
-protegido. Se corrigió igual que `tee`, exigiendo palabra completa.
+"committee" (contiene "tee"). Primer intento: exigir que `>`/`>>` estén
+precedidos por espacio o inicio de línea, `tee` sea palabra completa, y
+agregar una excepción categórica nueva para `git commit`. Esa excepción se
+**revirtió** — ver el hallazgo de `pkf-auditor` más abajo. Por separado,
+`git add` con un archivo protegido en la lista se bloqueaba porque `add `
+contiene `dd ` como substring; se corrigió igual que `tee`, exigiendo
+palabra completa (ese fix sí se mantuvo, es una corrección de precisión de
+un token, no una excepción nueva).
 
-Una tercera ronda (esta vez detectada por `pkf-auditor` durante la
-auditoría, no por un commit fallido) mostró que exigir "palabra completa"
-no bastaba para `>`/`tee`: la notación de prosa `sección 'X' > 'Y'` (usada
-constantemente en specs/ADRs de este proyecto para citar subsecciones)
-tiene la forma exacta de un redirect real. El fix de fondo fue distinto:
-en vez de verificar si el comando *menciona* un archivo protegido en
-cualquier parte, `>`/`>>`/`tee` ahora extraen su *destino real*
+Una tercera ronda (detectada por `pkf-auditor` durante la auditoría, no por
+un commit fallido) mostró que exigir "palabra completa" no bastaba para
+`>`/`tee`: la notación de prosa `sección 'X' > 'Y'` (usada constantemente
+en specs/ADRs de este proyecto para citar subsecciones) tiene la forma
+exacta de un redirect real. El fix de fondo fue distinto y más profundo: en
+vez de verificar si el comando *menciona* un archivo protegido en
+cualquier parte, `>`/`>>`/`tee` ahora extraen su **destino real**
 (`_redirect_targets`/`_tee_targets` en `protect_bash_writes.py`) y solo
-bloquean si ese destino específico es un archivo protegido. Ver
+bloquean si ese destino específico es un archivo protegido.
+
+**Hallazgo de gobernanza (mismo `pkf-auditor`, resuelto revirtiendo):** la
+excepción categórica para `git commit` (mencionada arriba) no era un simple
+fix de precisión — era una decisión de arquitectura (P3/sección 4 de
+`AGENTS.md`: ampliar un límite de seguridad que ADR-006 fijó
+deliberadamente en dos excepciones, tras evaluar y descartar explícitamente
+"bloquear `Bash` sin excepciones") que se implementó directamente, sin
+pasar por `pkf-architect` ni generar un ADR que actualizara ADR-006. El
+auditor encontró además que esa excepción ni siquiera cubría el caso real
+que la motivó (los commits reales de esta sesión usan mensajes
+multilínea, que `_is_single_command()` descalifica) — el rediseño por
+destino real era lo que de verdad resolvía el problema. Se revirtió la
+excepción categórica y se conservó solo el rediseño por destino real (que
+sí es una corrección de precisión legítima, no una excepción nueva). Ver
 `docs/friction-log.md`, entrada 2026-07-07 ("El hook de protección de Bash
-bloqueó un commit legítimo") para el detalle de las tres rondas.
+bloqueó un commit legítimo") para el detalle completo de las tres rondas y
+la reversión.
 
 **`tools/add_business_rule.py`:** único camino sancionado para crear u
 obsoletar una RN vía `Bash` dentro de una sesión de Claude Code, invocado con

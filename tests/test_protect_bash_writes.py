@@ -115,9 +115,12 @@ def test_ignores_non_bash_tool():
 def test_allows_git_commit_mentioning_protected_file_in_message():
     """Regresion: un commit real de esta sesion quedo bloqueado porque su
     mensaje mencionaba AGENTS.md y contenia '<noreply@anthropic.com>' -- el
-    '>' del email se interpreto como token de escritura. git commit nunca
-    escribe a un path del working tree via redireccion de shell; el
-    contenido del mensaje es texto opaco."""
+    '>' del email se interpreto como token de escritura. NO se resuelve con
+    una excepcion categorica para 'git commit' (eso se probo, y se revirtio:
+    era un cambio al limite de seguridad que ADR-006 no aprobo, ver
+    docs/friction-log.md) -- se resuelve porque '>'/'tee' ahora se verifican
+    por su destino real, y '<...>' no tiene un destino real despues del '>'
+    (no hay espacio antes)."""
     message = (
         "Actualiza AGENTS.md seccion 7.\n\n"
         "Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
@@ -127,12 +130,29 @@ def test_allows_git_commit_mentioning_protected_file_in_message():
     assert result.stderr == ""
 
 
-def test_allows_git_commit_mentioning_write_tool_names_in_message():
-    """Regresion: un commit que describe en prosa lo que hace este mismo
-    hook (ej. menciona 'sed -i' como ejemplo) no debe bloquearse."""
-    message = "Documenta sed -i y tee como ejemplos en AGENTS.md"
+def test_allows_git_commit_mentioning_tee_as_prose_word():
+    """La verificacion por destino real de 'tee' evita el falso positivo de
+    'committee'/prosa incluso dentro de un git commit, sin necesitar una
+    excepcion especial para git commit."""
+    message = "El comite (committee) reviso la seccion de AGENTS.md ayer"
     result = run_hook(f"git commit -m {message!r}")
     assert result.returncode == 0
+
+
+def test_git_commit_mentioning_sed_i_as_prose_is_a_known_accepted_limitation():
+    """LIMITACION CONOCIDA Y ACEPTADA, no un bug: a diferencia de '>'/'tee',
+    'sed -i' (y cp /install /rsync/perl -i/truncate) siguen siendo
+    mencion+substring, no verificacion por destino real -- ver ADR-006 y
+    docs/friction-log.md ('riesgo vigilado'). Un commit cuyo mensaje
+    describe 'sed -i' en prosa junto a un archivo protegido SI se bloquea
+    hoy. Se probo agregar una excepcion categorica para git commit (que
+    habria evitado esto), pero se revirtio por ser un cambio de arquitectura
+    no aprobado via ADR (ver friction-log). Este test documenta el
+    comportamiento actual a proposito, para que un cambio futuro que lo
+    modifique lo haga con intencion, no por accidente."""
+    message = "Documenta sed -i como ejemplo de token de escritura en AGENTS.md"
+    result = run_hook(f"git commit -m {message!r}")
+    assert result.returncode == 2
 
 
 def test_git_commit_with_file_flag_is_unaffected():

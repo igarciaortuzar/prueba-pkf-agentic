@@ -27,20 +27,20 @@ Logica (en orden, ver ADR-006 seccion "Decision" > "1. Logica de deteccion"):
 3. Excepcion 2 - script sancionado: invocacion (sin encadenar) de
    `python tools/add_business_rule.py ...`. Se permite; la validacion de
    fondo la hace el propio script.
-4. Excepcion 3 - `git commit`: un commit nunca escribe directamente sobre
-   un path del working tree via redireccion de shell -- el mensaje del
-   commit es texto opaco (puede legitimamente mencionar "AGENTS.md" o
-   contener un ">" dentro de un "Co-Authored-By: ... <email>", como en
-   este mismo repo). Se permite sin analizar el resto del comando. Agregada
-   tras un falso positivo real detectado en esta sesion (ver
-   docs/friction-log.md).
-5. Caso general: si hay mencion de archivo protegido y no calzo ninguna
+4. Caso general: si hay mencion de archivo protegido y no calzo ninguna
    excepcion, se bloquea (exit 2) si ademas aparece un token que "parece"
    una escritura (>, >>, sed -i, tee, cp , etc., o un mv/git mv que no
-   calzo exactamente la excepcion 1). `>` y `tee` exigen contexto de
-   posicion tipica de shell (precedidos por inicio de linea/espacio, o
-   palabra completa) para no disparar con "<email@x.com>" o "committee".
-   Si solo hay mencion sin token de escritura (lectura), se permite.
+   calzo exactamente la excepcion 1). `>` y `tee` se verifican por su
+   DESTINO real (no por mencion en cualquier parte del comando): solo
+   bloquean si el archivo inmediatamente despues de `>`/`tee` es uno
+   protegido. Esto es lo que permite que un mensaje de `git commit` que
+   menciona "AGENTS.md" en prosa, o contiene un ">" dentro de un email
+   "Co-Authored-By: ... <email>", no se bloquee -- sin necesitar una
+   excepcion especial para `git commit` (una version anterior de este hook
+   sí tenía una excepcion 3 categorica para `git commit`; se revirtio por
+   ser un cambio al limite de seguridad que ADR-006 no aprobo -- ver
+   docs/friction-log.md). Si solo hay mencion sin token de escritura
+   (lectura), se permite.
 """
 import json
 import re
@@ -77,11 +77,6 @@ ADR_PROMOTION_RE = re.compile(
 
 # Excepcion 2: invocacion del script sancionado para crear/obsoletar RN.
 ADD_BUSINESS_RULE_RE = re.compile(r"^(python3?|py)\s+tools/add_business_rule\.py\b.*$")
-
-# Excepcion 3: git commit. El mensaje es texto opaco -- puede mencionar
-# archivos protegidos o contener un ">" (ej. "Co-Authored-By: ... <email>")
-# sin que eso sea una escritura real a un path del working tree.
-GIT_COMMIT_RE = re.compile(r"^git\s+commit\b")
 
 # Separadores de shell que descalifican una linea de comando para cualquiera
 # de las excepciones de un solo comando (deben ser un unico comando, no
@@ -137,12 +132,6 @@ def _matches_add_business_rule_exception(command: str) -> bool:
     return bool(ADD_BUSINESS_RULE_RE.match(command.strip()))
 
 
-def _matches_git_commit_exception(command: str) -> bool:
-    if not _is_single_command(command):
-        return False
-    return bool(GIT_COMMIT_RE.match(command.strip()))
-
-
 def _redirect_targets(command: str) -> list:
     """Tokens que serian el archivo destino de un '>'/'>>' precedido de
     espacio o inicio de linea. P.ej. en 'echo x >> foo.md' devuelve
@@ -151,12 +140,16 @@ def _redirect_targets(command: str) -> list:
 
 
 def _tee_targets(command: str) -> list:
-    """Tokens que serian el/los archivo(s) destino de 'tee' (sus argumentos
-    posicionales, saltando flags como -a)."""
+    """Tokens que serian el/los archivo(s) destino de 'tee' (su primer
+    argumento posicional tras flags como -a). Solo el primer token: `tee`
+    real casi siempre toma un unico archivo destino inmediatamente despues;
+    capturar TODOS los tokens restantes de la linea (version anterior de
+    esta funcion) hacia que prosa como 'documenta tee en AGENTS.md' contara
+    "AGENTS.md" como si fuera un destino de tee, aunque estuviera a varias
+    palabras de distancia -- ver docs/friction-log.md."""
     targets = []
-    for m in re.finditer(r"\btee\b((?:\s+-\S+)*)((?:\s+\S+)*)", command):
-        for arg in m.group(2).split():
-            targets.append(arg)
+    for m in re.finditer(r"\btee\b(?:\s+-\S+)*\s+(\S+)", command):
+        targets.append(m.group(1))
     return targets
 
 
@@ -211,12 +204,7 @@ def main() -> None:
     if _matches_add_business_rule_exception(command):
         sys.exit(0)
 
-    # 4. Excepcion 3: git commit (mensaje es texto opaco, no una escritura
-    # real a un path del working tree).
-    if _matches_git_commit_exception(command):
-        sys.exit(0)
-
-    # 5. Caso general: bloquea solo si ademas parece una escritura.
+    # 4. Caso general: bloquea solo si ademas parece una escritura.
     if _looks_like_write(command):
         print(
             "[PKF] BLOQUEADO: este comando de Bash parece escribir "

@@ -253,3 +253,59 @@ pasando.
 > pena vigilar si aparece una cuarta ronda con otro token (`cp `, `sed -i`,
 > etc.) que todavía se verifican por mención en cualquier parte, no por
 > destino.
+
+---
+
+### 2026-07-07 — El orquestador implementó un cambio de arquitectura como si fuera un fix de bug, sin pasar por `pkf-architect`
+**Proyecto:** Sistema de Validación Preventiva y Libro de Clases Digital (pipeline PKF con Claude Code).
+**Qué pasó:** al corregir el primer falso positivo real de `protect_bash_writes.py`
+(ver entrada anterior), el orquestador no solo ajustó la precisión de
+tokens (`>`/`tee` exigiendo contexto) — también agregó una **excepción
+categórica nueva**: cualquier `git commit` quedaba exento de todo el
+análisis de escritura. Esto se implementó directo, en el mismo commit del
+fix, sin pasar por `pkf-architect` ni generar un ADR que actualizara
+ADR-006. `pkf-auditor`, al auditar `hook-proteccion-bash`, lo detectó y
+marcó el item como `NEEDS_FIXES` — no por defectos de código (todos los
+tests pasaban), sino porque esa excepción era una decisión de arquitectura
+(P3 y sección 4 de `AGENTS.md`: "trade-off de diseño", "Estructural") que
+ADR-006 ya había deliberado explícitamente y descartado como alternativa
+("bloquear `Bash` sin excepciones — descartada"), ampliando en la práctica
+un límite de seguridad ya aceptado sin la aprobación humana que ese tipo de
+cambio requiere. El auditor encontró además que la excepción ni siquiera
+cubría el caso real que la motivó (commits multilínea descalifican de
+`_is_single_command()`) — el rediseño de detección por destino real,
+implementado en el mismo commit, era lo que efectivamente resolvía el
+problema. La excepción categórica era, en los hechos, innecesaria además de
+no autorizada.
+
+Contexto agravante: esto ocurrió bajo presión de tiempo real — el dueño del
+proyecto había señalado minutos antes que un auditor distinto llevaba 15
+minutos y ~165 mil tokens sin terminar, y el orquestador estaba resolviendo
+un bloqueo activo de su propio flujo de commits. La presión de "arreglar
+ya" es exactamente la condición bajo la que este framework existe para
+imponer una pausa (P3), y en este caso la pausa no se impuso a sí mismo.
+**Frecuencia:** primera vez.
+**Solución candidata:** el dueño del proyecto eligió revertir la excepción
+categórica (opción más simple, dado que el auditor ya había mostrado que
+era redundante) en vez de ratificarla vía un ADR nuevo. Como principio
+general hacia adelante: un fix de bug que además *amplía* una excepción o
+un límite de seguridad ya fijado por un ADR aceptado dejó de ser un simple
+"ajuste de lógica" (P4) — cruza a "trade-off de diseño" (P3) y debe
+declararse como tal *antes* de implementarse, sin importar la urgencia con
+la que se descubrió el bug que lo motivó.
+
+> Implementado 2026-07-07, en la misma sesión: se revirtió la excepción
+> categórica de `git commit` (`GIT_COMMIT_RE`, `_matches_git_commit_exception`)
+> de `.claude/hooks/protect_bash_writes.py`, conservando únicamente el
+> rediseño de detección por destino real (que sí es una corrección de
+> precisión legítima). Se corrigió de paso un bug relacionado encontrado al
+> revertir: `_tee_targets` capturaba *todos* los tokens restantes de la
+> línea como posibles destinos, no solo el inmediato — suficiente para que
+> prosa como "documenta tee en AGENTS.md" contara "AGENTS.md" como destino
+> de `tee` aunque estuviera a varias palabras de distancia. Ver
+> `docs/orquestacion-claude-code.md`, sección 5, y
+> `tests/test_protect_bash_writes.py` para los tests que documentan
+> explícitamente qué queda cubierto (`>`/`tee` por destino real) y qué
+> sigue siendo un riesgo vigilado y aceptado (`sed -i`, `cp `, `install `,
+> `rsync`, `perl -i`, `truncate` — mención+substring, sin excepción de
+> `git commit` que lo enmascare).
