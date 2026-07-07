@@ -45,3 +45,7 @@ comparar línea por línea contra la fuente original en cada caso.
 **Solución candidata:** evaluar extender la regla de "mostrar diff antes de
 guardar" (agregada en sección 5 para AGENTS.md) a otros archivos de alto
 impacto — business-rules.md, ADRs aceptados.
+
+> Implementado 2026-07-07 vía hooks de Claude Code (`PreToolUse` bloquea
+> `Edit`/`Write` sobre esos archivos con código de salida 2). Ver ADR-002 y
+> `docs/orquestacion-claude-code.md`.
