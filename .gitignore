@@ -15,3 +15,13 @@ Thumbs.db
 # Claude Code (preferencias locales, no se versionan)
 CLAUDE.local.md
 .claude/settings.local.json
+
+# Streamlit secrets (ADR-003): nunca se versiona el archivo real, solo
+# .streamlit/secrets.toml.example queda en el repo.
+.streamlit/secrets.toml
+
+# Base de datos libSQL/SQLite local (desarrollo y tests, ver app/db.py).
+*.db
+*.db-journal
+*.db-wal
+*.db-shm

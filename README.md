@@ -27,10 +27,23 @@ de contexto externo.
 
 ## Cómo empezar
 
-Todavía no hay código de aplicación implementado — el proyecto está en la
-etapa de arquitectura y modelo de datos (ver `docs/adr/` y `queue/_queue.json`
-para el estado exacto de cada pieza). Cuando exista código, esta sección
-debe reemplazarse por instrucciones reales de instalación/ejecución.
+Existe un scaffold inicial (hosting, conexión a base de datos y gate de
+autenticación — ver ADR-003). El esquema de datos del dominio y el motor de
+validación (ADR-004) todavía no están implementados (ver
+`queue/_queue.json` para el estado exacto de cada pieza).
+
+```bash
+pip install -r requirements.txt
+cp .streamlit/secrets.toml.example .streamlit/secrets.toml  # opcional en dev
+streamlit run app.py
+```
+
+Sin `TURSO_DATABASE_URL` configurado, la app usa automáticamente un archivo
+libSQL local (`local.db`) en vez de Turso — ver `app/db.py`.
+
+```bash
+python -m pytest
+```
 
 ## Validar consistencia
 

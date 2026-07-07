@@ -1,0 +1,9 @@
+# Dependencias de la app (ver ADR-003: Streamlit Community Cloud + Turso/libSQL).
+#
+# Alcance de este archivo: solo lo necesario para el scaffold de hosting y
+# persistencia (item de cola "hosting-y-persistencia-turso"). El esquema de
+# tablas y el motor de validacion (RN-001/002/003, item "modelo-datos-motor-validacion")
+# no agregan dependencias nuevas sobre esta lista.
+
+streamlit>=1.59,<2
+libsql-client>=0.3,<0.4
