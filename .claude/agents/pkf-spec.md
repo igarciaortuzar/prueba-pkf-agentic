@@ -1,7 +1,7 @@
 ---
 name: pkf-spec
 description: Use this agent at the start of any non-trivial change to PKF or a project governed by it, to turn a request into a written spec before any code or protected file is touched. Use PROACTIVELY before implementation begins.
-tools: Read, Grep, Glob
+tools: Read, Grep, Glob, Write
 model: sonnet
 ---
 

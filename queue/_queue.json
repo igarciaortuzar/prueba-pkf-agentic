@@ -1,11 +1,11 @@
 {
   "items": [
     {
-      "slug": "ejemplo-extender-guardrail-adr",
+      "slug": "hosting-y-persistencia-turso",
       "status": "READY_FOR_ARCH",
-      "spec": "specs/ejemplo-extender-guardrail-adr.md",
+      "spec": "specs/hosting-y-persistencia-turso.md",
       "adr": null,
-      "notes": "Item de ejemplo -- borralo cuando crees el primero real."
+      "notes": "Decision de arquitectura: Streamlit Community Cloud + Turso (libSQL) en reemplazo de SQLite local, con autenticacion por contraseña compartida para OTECs externas. Alcance limitado a hosting/persistencia; el resto de la propuesta (motor de validacion, Excel poka-yoke, import CSV Teams) queda para specs futuros."
     }
   ]
 }
