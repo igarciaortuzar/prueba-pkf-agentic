@@ -11,6 +11,7 @@
 | `examples/` | Patrones de referencia ilustrativos (ej. ADRs de ejemplo). No son reglas ni decisiones vigentes en este proyecto. |
 | `testing/` | Protocolos de validación del framework mismo (no del proyecto de negocio). |
 | `orquestacion-claude-code.md` | Cómo PKF se aplica mediante hooks y subagentes de Claude Code (ver ADR-002). |
+| `vision-general-sistema.md` | Estado del sistema en un solo lugar: problema de negocio, qué está decidido (ADR/RN) y qué falta por definir. Se actualiza al agregar un ADR o RN relevante al panorama general. |
 
 Cuando se agregue un documento nuevo a `docs/`, se registra en esta tabla.
 Un documento que no está en el índice no existe para efectos del proyecto.
