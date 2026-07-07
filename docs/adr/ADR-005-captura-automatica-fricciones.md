@@ -1,7 +1,7 @@
-# ADR-XXX — Captura de fricciones como paso explícito de cierre de tarea, reforzado por un hook `Stop` acotado
+# ADR-005 — Captura de fricciones como paso explícito de cierre de tarea, reforzado por un hook `Stop` acotado
 
 **Fecha:** 2026-07-07
-**Estado:** propuesta
+**Estado:** aceptada
 
 ## Contexto
 

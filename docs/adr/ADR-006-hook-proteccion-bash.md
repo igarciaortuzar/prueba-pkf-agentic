@@ -1,7 +1,7 @@
-# ADR-XXX — Hook `PreToolUse` sobre `Bash` con bloqueo real y excepciones auditables
+# ADR-006 — Hook `PreToolUse` sobre `Bash` con bloqueo real y excepciones auditables
 
 **Fecha:** 2026-07-07
-**Estado:** propuesta
+**Estado:** aceptada
 
 ## Contexto
 
