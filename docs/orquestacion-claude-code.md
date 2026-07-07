@@ -170,9 +170,19 @@ precedidos por espacio o inicio de línea, y que `tee` sea palabra completa
 `git commit`. Minutos después, el mismo patrón apareció de nuevo: `git add`
 contiene `dd ` como substring de `add `, bloqueando el comando de git más
 usado en este flujo cada vez que la lista de archivos incluía uno
-protegido. Se corrigió igual que `tee`, exigiendo palabra completa. Ver
+protegido. Se corrigió igual que `tee`, exigiendo palabra completa.
+
+Una tercera ronda (esta vez detectada por `pkf-auditor` durante la
+auditoría, no por un commit fallido) mostró que exigir "palabra completa"
+no bastaba para `>`/`tee`: la notación de prosa `sección 'X' > 'Y'` (usada
+constantemente en specs/ADRs de este proyecto para citar subsecciones)
+tiene la forma exacta de un redirect real. El fix de fondo fue distinto:
+en vez de verificar si el comando *menciona* un archivo protegido en
+cualquier parte, `>`/`>>`/`tee` ahora extraen su *destino real*
+(`_redirect_targets`/`_tee_targets` en `protect_bash_writes.py`) y solo
+bloquean si ese destino específico es un archivo protegido. Ver
 `docs/friction-log.md`, entrada 2026-07-07 ("El hook de protección de Bash
-bloqueó un commit legítimo") para el detalle de ambos casos.
+bloqueó un commit legítimo") para el detalle de las tres rondas.
 
 **`tools/add_business_rule.py`:** único camino sancionado para crear u
 obsoletar una RN vía `Bash` dentro de una sesión de Claude Code, invocado con

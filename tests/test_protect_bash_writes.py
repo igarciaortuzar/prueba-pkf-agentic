@@ -172,6 +172,27 @@ def test_real_dd_command_to_protected_file_still_blocked_after_fix():
     assert result.returncode == 2
 
 
+def test_prose_arrow_notation_does_not_trigger_redirect_false_positive():
+    """Regresion (encontrada por pkf-auditor): 'seccion X > Y' es notacion
+    de prosa usada constantemente en specs/ADRs de este proyecto para citar
+    subsecciones -- tiene la misma forma de superficie que un redirect real
+    (espacio + '>') pero su 'destino' no es un archivo. Ahora se verifica
+    el destino real del '>', no solo su presencia."""
+    result = run_hook(
+        "echo revisando docs/adr/ADR-006-hook-proteccion-bash.md "
+        "seccion 'Decision' > '2. Diseno de tools/add_business_rule.py'"
+    )
+    assert result.returncode == 0
+    assert result.stderr == ""
+
+
+def test_tee_target_extraction_ignores_flags():
+    """'tee -a archivo.md' -- el destino es el argumento tras el flag, no
+    el flag mismo."""
+    result = run_hook("echo x | tee -a AGENTS.md")
+    assert result.returncode == 2
+
+
 def test_real_redirect_to_protected_file_still_blocked_after_fix():
     """Los fixes de falsos positivos no deben debilitar la deteccion real:
     un '>' precedido de espacio (forma normal de un redirect) sigue

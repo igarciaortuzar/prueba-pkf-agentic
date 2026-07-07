@@ -100,14 +100,14 @@ WRITE_TOKENS = (
     "truncate",
 )
 
-# Tokens que necesitan contexto de posicion tipica de shell (palabra
-# completa o precedidos de espacio/inicio de linea), porque como substring
-# libre generan falsos positivos reales ya detectados en esta sesion:
-# ">" matcheaba dentro de "<email@dominio>" (Co-Authored-By), "tee" dentro
-# de "committee", y "dd " dentro de "git add " (el propio comando de git
-# que se usa para preparar cada commit de este proyecto).
-REDIRECT_RE = re.compile(r"(?:^|\s)>{1,2}")
-TEE_RE = re.compile(r"\btee\b")
+# "dd" necesita contexto de palabra completa (precedido de espacio o inicio
+# de linea): como substring libre matcheaba dentro de "git add " (el
+# comando de git mas usado en este flujo de trabajo). ">" y "tee" ya no se
+# verifican por substring/mencion: se verifica su destino real (funciones
+# _redirect_targets/_tee_targets mas abajo), porque incluso exigiendo
+# contexto de palabra, "seccion 'X' > 'Y'" (notacion de prosa que aparece
+# constantemente en specs/ADRs de este proyecto) tiene la misma forma de
+# superficie que un redirect real y seguia dando falsos positivos.
 DD_RE = re.compile(r"(?:^|\s)dd(?:\s|$)")
 
 
@@ -143,12 +143,40 @@ def _matches_git_commit_exception(command: str) -> bool:
     return bool(GIT_COMMIT_RE.match(command.strip()))
 
 
+def _redirect_targets(command: str) -> list:
+    """Tokens que serian el archivo destino de un '>'/'>>' precedido de
+    espacio o inicio de linea. P.ej. en 'echo x >> foo.md' devuelve
+    ['foo.md']."""
+    return [m.group(1) for m in re.finditer(r"(?:^|\s)>{1,2}\s*(\S+)", command)]
+
+
+def _tee_targets(command: str) -> list:
+    """Tokens que serian el/los archivo(s) destino de 'tee' (sus argumentos
+    posicionales, saltando flags como -a)."""
+    targets = []
+    for m in re.finditer(r"\btee\b((?:\s+-\S+)*)((?:\s+\S+)*)", command):
+        for arg in m.group(2).split():
+            targets.append(arg)
+    return targets
+
+
+def _mentions_protected_file_in_targets(targets: list) -> bool:
+    return any(
+        re.search(pattern, target) for target in targets for pattern in MENTION_PATTERNS
+    )
+
+
 def _looks_like_write(command: str) -> bool:
+    # ">"/"tee" se verifican por destino real, no por mencion en cualquier
+    # parte del comando: "seccion 'X' > 'Y'" (notacion de prosa, no un
+    # redirect real) tiene la misma forma de superficie que un redirect,
+    # pero su "destino" no es un archivo protegido. Ver docs/friction-log.md,
+    # entrada "El hook de proteccion de Bash bloqueo un commit legitimo".
+    if _mentions_protected_file_in_targets(_redirect_targets(command)):
+        return True
+    if _mentions_protected_file_in_targets(_tee_targets(command)):
+        return True
     if any(tok in command for tok in WRITE_TOKENS):
-        return True
-    if REDIRECT_RE.search(command):
-        return True
-    if TEE_RE.search(command):
         return True
     if DD_RE.search(command):
         return True

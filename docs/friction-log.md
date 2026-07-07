@@ -225,10 +225,31 @@ corrección: `dd ` pasó a exigir palabra completa
 (`git add` con archivo protegido ya no bloquea; `dd if=... of=AGENTS.md`
 real sigue bloqueado). 46 tests totales pasando.
 
+**Segunda actualización (detectada por `pkf-auditor`, no por el dueño del
+proyecto):** al auditar `captura-automatica-fricciones`, `pkf-auditor`
+reportó — sin escribirlo él mismo en este archivo, siguiendo AGENTS.md
+sección 7 — que un comando suyo fue bloqueado por mencionar
+`docs/adr/ADR-006-hook-proteccion-bash.md` junto a la notación de prosa
+`sección 'Decisión' > '2. ...'`, que este mismo documento usa
+constantemente para citar subsecciones. Esa notación tiene la forma exacta
+de un redirect real (espacio + `>`), así que el fix anterior (exigir
+espacio antes de `>`) no alcanzaba — el problema no era falta de contexto,
+sino verificar la *mención en cualquier parte* del comando en vez del
+*destino real* de la escritura. Se rediseñó `_looks_like_write`: `>`/`>>` y
+`tee` ahora extraen su destino real (`_redirect_targets`/`_tee_targets`) y
+solo bloquean si ESE destino específico matchea un patrón protegido, no si
+el archivo protegido aparece mencionado en cualquier otra parte del
+comando. 2 tests de regresión más (la notación de prosa ya no bloquea; un
+`tee -a` real a archivo protegido sigue bloqueado). 48 tests totales
+pasando.
+
 > Implementado 2026-07-07, en la misma sesión que introdujo el bug (ver
 > `docs/orquestacion-claude-code.md`, sección 5, "Fix aplicado tras uso
-> real"). Ejemplo concreto de por qué vale la pena verificar un hook nuevo
-> contra uso real inmediatamente después de desplegarlo, no solo contra los
-> casos de prueba que motivaron su diseño original — y de que una heurística
-> de substrings cortos sobre texto libre tiende a producir más de un falso
-> positivo de la misma familia, no solo uno.
+> real"). Tres rondas del mismo tipo de bug en una sola sesión: confirma
+> que una heurística de "menciona + contiene token" sobre texto libre es
+> estructuralmente propensa a falsos positivos en prosa técnica (que cita
+> archivos y usa notación `>` constantemente); verificar el *destino real*
+> de la escritura, no solo la mención, es la corrección de fondo — vale la
+> pena vigilar si aparece una cuarta ronda con otro token (`cp `, `sed -i`,
+> etc.) que todavía se verifican por mención en cualquier parte, no por
+> destino.
