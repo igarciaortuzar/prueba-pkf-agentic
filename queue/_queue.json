@@ -20,6 +20,13 @@
       "spec": "specs/captura-automatica-fricciones.md",
       "adr": null,
       "notes": "Spec creado a partir de la entrada de friction-log.md 2026-07-07 'La captura de fricciones depende de que el dueño del proyecto se acuerde de preguntar, no ocurre por iniciativa propia'. Evalua criticamente las 3 soluciones candidatas ya anotadas ahi (paso explicito en AGENTS.md, hook Stop, habito humano documentado) sin decidir por cuenta propia. Deja explicita la tension tecnica real de los hooks Stop/SessionEnd de Claude Code: Stop solo puede recordar en el turno siguiente (no fuerza reflexion en el momento) y si dispara en cada turno puede ser ruidoso; SessionEnd corre despues de terminada la sesion, sin inferencia posible. Recomienda evaluar primero una combinacion de Opcion 1 (paso explicito en AGENTS.md) con una version acotada de Opcion 2 (hook Stop condicionado, no en cada turno), viendo la Opcion 3 sola como el statu quo que ya produjo la friccion — pero la decision final queda para el dueño del proyecto via ADR. Nota relevante encontrada: docs/friction-log.md NO esta en PROTECTED_PATTERNS de .claude/hooks/protect_files.py hoy, cualquier agente ya puede escribir ahi sin bloqueo tecnico."
+    },
+    {
+      "slug": "hook-proteccion-bash",
+      "status": "READY_FOR_ARCH",
+      "spec": "specs/hook-proteccion-bash.md",
+      "adr": null,
+      "notes": "Origen: docs/friction-log.md, entrada 2026-07-07 ('La proteccion de archivos (hook PreToolUse) no cubre Bash'). protect_files.py solo intercepta Edit/Write; ADR-002 dejo Bash sin proteger a proposito para permitir el mv humano de promocion de ADR (DRAFT-<slug>.md -> ADR-0XX-<slug>.md), pero en esta sesion el mismo hueco se uso para crear RN-001/002/003 directamente en docs/business-rules.md via heredoc de Bash, evitando el guardrail. Tension central para pkf-architect: cualquier hook PreToolUse sobre Bash que bloquee escrituras a rutas protegidas podria bloquear tambien el mv/git mv legitimo de promocion de ADR si no distingue ambos casos con una señal confiable. Pregunta abierta central sin resolver en el spec (evaluar en el ADR, no asumir): heuristica de regex sobre comandos de Bash (fragil, con falsos positivos/negativos inevitables) vs. dejar Bash sin bloqueo por patron de comando pero proveer un camino legitimo auditable via script en tools/ (ej. tools/add_business_rule.py) para las excepciones conocidas (mv de promocion de ADR, creacion de RN con instruccion explicita del dueño). Ver specs/hook-proteccion-bash.md seccion Preguntas abiertas para el detalle completo."
     }
   ]
 }
