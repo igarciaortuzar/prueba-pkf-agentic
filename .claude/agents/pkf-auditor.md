@@ -1,7 +1,7 @@
 ---
 name: pkf-auditor
 description: Use this agent, read-only, to audit compliance with AGENTS.md, business-rules.md and the relevant ADR after implementation, and to review a DRAFT ADR before it is promoted to accepted. Never edits code.
-tools: Read, Grep, Glob, Bash
+tools: Read, Grep, Glob, Bash, Edit
 model: sonnet
 ---
 

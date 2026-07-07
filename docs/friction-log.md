@@ -61,12 +61,19 @@ dicen explícitamente "Escribe (o actualiza) `specs/<slug>.md`" y "Actualiza
 pudo persistir nada: devolvió el contenido completo en su respuesta para
 que el orquestador (sesión principal) lo grabara manualmente. Se corrigió
 agregando `Write` a su lista de `tools`.
-**Frecuencia:** primera vez (detectado al primer uso real del subagente).
+**Frecuencia:** primera vez (detectado al primer uso real del subagente);
+recurrente — `pkf-auditor` tenía exactamente el mismo bug (`tools: Read,
+Grep, Glob, Bash`, sin `Edit`/`Write`, pese a que su rol le exige
+"Actualiza `queue/_queue.json`"), sin haberse usado todavía en esta sesión.
+Se detectó al revisar los 4 subagentes antes del primer uso real de
+`pkf-auditor` (2026-07-07), no después de un fallo — confirma que valía la
+pena la revisión que esta misma entrada ya recomendaba. Corregido
+agregando `Edit` a su lista de `tools`.
 **Solución candidata:** al instalar o modificar cualquier subagente,
 verificar que su lista de `tools` sea consistente con las acciones que sus
-instrucciones de rol le piden ejecutar — ya aplicado a `pkf-spec`, vale la
-pena revisar `pkf-architect`, `pkf-implementer` y `pkf-auditor` si se les
-agregan responsabilidades nuevas en el futuro.
+instrucciones de rol le piden ejecutar — ya aplicado a `pkf-spec` y
+`pkf-auditor`. `pkf-architect` y `pkf-implementer` ya tenían los permisos
+correctos (verificado por uso real, no solo lectura del archivo).
 
 ---
 
