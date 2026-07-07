@@ -169,12 +169,10 @@ la fricción documentada, no toma la decisión.
 > `docs/business-rules.md`). Ver `docs/orquestacion-claude-code.md`,
 > sección 6. La señal de `transcript_path` se verificó viable en la
 > práctica (no fue necesario recurrir a la alternativa de respaldo `git
-> diff --name-only` anotada en ADR-005). **Pendiente:** la sección 7 de
-> `AGENTS.md` propuesta en ADR-005 todavía no fue aplicada — requiere
-> revisión y aprobación explícita del dueño del proyecto antes de escribirse
-> (P2 y sección 5 de `AGENTS.md`); el hook `Stop` ya está activo, pero el
-> texto que le da contenido accionable al recordatorio aún no vive en
-> `AGENTS.md`.
+> diff --name-only` anotada en ADR-005). La sección 7 de `AGENTS.md`
+> quedó aplicada el mismo día tras revisión y aprobación explícita del
+> dueño del proyecto (diff mostrado completo antes de guardar, P2 y
+> sección 5 de `AGENTS.md`) — mecanismo completo y activo.
 
 ---
 
@@ -209,8 +207,21 @@ fricción abierta:
 - 6 tests de regresión nuevos en `tests/test_protect_bash_writes.py`
   cubriendo estos casos exactos.
 
+**Actualización (mismo día, minutos después del fix anterior):** el
+siguiente commit real quedó bloqueado por la misma clase de bug: `git add`
+contiene `dd ` como substring de `add ` (el token `"dd "` buscaba el
+comando `dd`, disco a disco, pero matcheaba dentro de `git add`) —
+bloqueando el comando de git más común de todo este flujo de trabajo cada
+vez que la lista de archivos incluía uno protegido. Mismo patrón de
+corrección: `dd ` pasó a exigir palabra completa
+(`(?:^|\s)dd(?:\s|$)`), igual que `tee`. 2 tests de regresión más
+(`git add` con archivo protegido ya no bloquea; `dd if=... of=AGENTS.md`
+real sigue bloqueado). 46 tests totales pasando.
+
 > Implementado 2026-07-07, en la misma sesión que introdujo el bug (ver
 > `docs/orquestacion-claude-code.md`, sección 5, "Fix aplicado tras uso
 > real"). Ejemplo concreto de por qué vale la pena verificar un hook nuevo
 > contra uso real inmediatamente después de desplegarlo, no solo contra los
-> casos de prueba que motivaron su diseño original.
+> casos de prueba que motivaron su diseño original — y de que una heurística
+> de substrings cortos sobre texto libre tiende a producir más de un falso
+> positivo de la misma familia, no solo uno.

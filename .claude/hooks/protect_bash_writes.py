@@ -89,23 +89,26 @@ GIT_COMMIT_RE = re.compile(r"^git\s+commit\b")
 _CHAINING_TOKENS = (";", "&&", "||", "|", "`", "$(")
 
 # Tokens de escritura que son suficientemente distintivos como substring
-# libre (baja probabilidad de aparecer por accidente en prosa normal).
+# libre (baja probabilidad de aparecer por accidente en prosa normal o en
+# subcomandos de git comunes).
 WRITE_TOKENS = (
     "sed -i",
     "cp ",
     "install ",
     "rsync",
-    "dd ",
     "perl -i",
     "truncate",
 )
 
-# ">"/"tee" necesitan contexto de posicion tipica de shell: un "<email@x>"
-# o la palabra "committee" no deben contar como escritura. Se exige que ">"
-# venga precedido de inicio de linea o espacio (como en "cmd > file" o
-# "cmd >> file"), y que "tee" sea una palabra completa.
+# Tokens que necesitan contexto de posicion tipica de shell (palabra
+# completa o precedidos de espacio/inicio de linea), porque como substring
+# libre generan falsos positivos reales ya detectados en esta sesion:
+# ">" matcheaba dentro de "<email@dominio>" (Co-Authored-By), "tee" dentro
+# de "committee", y "dd " dentro de "git add " (el propio comando de git
+# que se usa para preparar cada commit de este proyecto).
 REDIRECT_RE = re.compile(r"(?:^|\s)>{1,2}")
 TEE_RE = re.compile(r"\btee\b")
+DD_RE = re.compile(r"(?:^|\s)dd(?:\s|$)")
 
 
 def _is_single_command(command: str) -> bool:
@@ -146,6 +149,8 @@ def _looks_like_write(command: str) -> bool:
     if REDIRECT_RE.search(command):
         return True
     if TEE_RE.search(command):
+        return True
+    if DD_RE.search(command):
         return True
     # mv/git mv que no calzo exactamente con la excepcion 1 tambien cuenta
     # como escritura (renombrar/mover un archivo protegido).

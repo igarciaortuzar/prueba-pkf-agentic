@@ -65,6 +65,36 @@ Si dudas entre dos categorías, asume la más exigente.
 2. Lee lo relevante de `docs/` (índice en `docs/CONVENTIONS.md`).
 3. Recién entonces, toca código.
 
+## 7. Antes de cerrar una tarea Normal o Estructural
+
+Antes de dar por cerrada cualquier tarea clasificada como **Normal** o
+**Estructural** (tabla de la sección 4), cualquier agente (el
+orquestador principal o un subagente PKF) debe revisar si encontró
+alguna fricción real durante el trabajo — algo que no encontró donde
+esperaba, una convención que estorbó, un permiso faltante, una
+ambigüedad que tuvo que resolver por su cuenta, etc. — y proponerla
+explícitamente como candidata a `docs/friction-log.md`, en vez de
+esperar a que el dueño del proyecto pregunte.
+
+Esto no reemplaza el juicio humano: el agente **nunca escribe una
+entrada nueva en `docs/friction-log.md` en silencio**. Antes de
+documentar (o de decidir no documentar) una fricción candidata, debe
+anunciarla explícitamente al dueño del proyecto como parte de su
+respuesta — mostrando qué encontró y cuál es su intención (documentarla
+o no, y con qué severidad) — y esperar confirmación o instrucción antes
+de escribir la entrada. Si la tarea no tuvo ninguna fricción real que
+valga la pena anotar, basta con decirlo explícitamente ("no encontré
+fricciones dignas de registrar en esta tarea") en vez de omitir el paso
+sin mencionarlo.
+
+Si trabajas en Claude Code, un hook `Stop`
+(`.claude/hooks/stop_friction_reminder.py`, ver
+`docs/orquestacion-claude-code.md`) refuerza este paso técnicamente
+cuando detecta ediciones a `specs/`, `docs/adr/DRAFT-*.md` o
+`docs/business-rules.md` durante la sesión — pero el hook solo puede
+recordarlo en el turno siguiente, no reemplaza este paso ni te exime de
+seguirlo cuando trabajas fuera de una sesión con hooks activos.
+
 ---
 
 *Este proyecto usa PKF (Project Knowledge Framework) v0.1. El framework crece por

@@ -155,6 +155,23 @@ def test_committee_word_does_not_trigger_tee_false_positive():
     assert result.returncode == 0
 
 
+def test_git_add_mentioning_protected_file_does_not_trigger_dd_false_positive():
+    """Regresion: 'git add AGENTS.md' quedo bloqueado porque 'add ' contiene
+    'dd ' como substring -- el comando de git mas comun de este flujo de
+    trabajo (preparar un commit) se rompia cada vez que la lista de
+    archivos incluia un archivo protegido."""
+    result = run_hook(
+        "git add AGENTS.md docs/business-rules.md docs/adr/ADR-006-x.md"
+    )
+    assert result.returncode == 0
+    assert result.stderr == ""
+
+
+def test_real_dd_command_to_protected_file_still_blocked_after_fix():
+    result = run_hook("dd if=/dev/zero of=AGENTS.md")
+    assert result.returncode == 2
+
+
 def test_real_redirect_to_protected_file_still_blocked_after_fix():
     """Los fixes de falsos positivos no deben debilitar la deteccion real:
     un '>' precedido de espacio (forma normal de un redirect) sigue

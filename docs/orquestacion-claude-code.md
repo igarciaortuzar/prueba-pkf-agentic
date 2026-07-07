@@ -167,8 +167,12 @@ protegido junto a `<email@dominio>` (el `>` del email) o la palabra
 "committee" (contiene "tee"). Se corrigió exigiendo que `>`/`>>` estén
 precedidos por espacio o inicio de línea, y que `tee` sea palabra completa
 — y se agregó la excepción 3 de arriba como defensa adicional para
-`git commit`. Ver `docs/friction-log.md`, entrada 2026-07-07 ("El hook de
-protección de Bash bloqueó un commit legítimo").
+`git commit`. Minutos después, el mismo patrón apareció de nuevo: `git add`
+contiene `dd ` como substring de `add `, bloqueando el comando de git más
+usado en este flujo cada vez que la lista de archivos incluía uno
+protegido. Se corrigió igual que `tee`, exigiendo palabra completa. Ver
+`docs/friction-log.md`, entrada 2026-07-07 ("El hook de protección de Bash
+bloqueó un commit legítimo") para el detalle de ambos casos.
 
 **`tools/add_business_rule.py`:** único camino sancionado para crear u
 obsoletar una RN vía `Bash` dentro de una sesión de Claude Code, invocado con
