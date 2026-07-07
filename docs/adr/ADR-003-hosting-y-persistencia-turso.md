@@ -1,7 +1,7 @@
-# ADR-XXX — Hosting en Streamlit Community Cloud con persistencia en Turso (libSQL)
+# ADR-003 — Hosting en Streamlit Community Cloud con persistencia en Turso (libSQL)
 
 **Fecha:** 2026-07-07
-**Estado:** propuesta
+**Estado:** aceptada
 
 ## Contexto
 

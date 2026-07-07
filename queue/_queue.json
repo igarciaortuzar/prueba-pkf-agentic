@@ -4,8 +4,8 @@
       "slug": "hosting-y-persistencia-turso",
       "status": "READY_FOR_BUILD",
       "spec": "specs/hosting-y-persistencia-turso.md",
-      "adr": "docs/adr/DRAFT-hosting-y-persistencia-turso.md",
-      "notes": "Decision de arquitectura: Streamlit Community Cloud + Turso (libSQL) en reemplazo de SQLite local, con autenticacion por contraseña compartida para OTECs externas. Alcance limitado a hosting/persistencia; el resto de la propuesta (motor de validacion, Excel poka-yoke, import CSV Teams) queda para specs futuros."
+      "adr": "docs/adr/ADR-003-hosting-y-persistencia-turso.md",
+      "notes": "ADR-003 aceptado. Decision de arquitectura: Streamlit Community Cloud + Turso (libSQL) en reemplazo de SQLite local, con autenticacion por contraseña compartida para OTECs externas. Alcance limitado a hosting/persistencia; el resto de la propuesta (motor de validacion, Excel poka-yoke, import CSV Teams) queda para specs futuros. Riesgos vigilados a resolver durante la implementacion (ver ADR-003, seccion Consecuencias): limites reales del tier gratuito de Turso, si la contraseña compartida es global o por OTEC, donde/como se gestiona y rota, y requisitos de residencia de datos de CODELCO/OTIC."
     }
   ]
 }
