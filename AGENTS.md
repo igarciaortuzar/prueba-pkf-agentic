@@ -6,12 +6,16 @@
 
 ## 1. Qué es este proyecto
 
-<!-- PLANTILLA: reemplazar al inicializar un proyecto nuevo -->
-
-**Nombre:** {NOMBRE_DEL_PROYECTO}
-**Propósito:** {Una o dos frases. Qué problema resuelve y para quién.}
-**Estado:** {exploración | desarrollo activo | producción | mantenimiento}
-**Stack principal:** {ej: Python 3.12, Power Automate, Power BI, React, etc.}
+**Nombre:** Sistema de Validación Preventiva y Libro de Clases Digital (Cuenta CODELCO)
+**Propósito:** Mover la validación de datos de asistencia de capacitación
+(choques de horario, calce de horas por artículo, calce de participantes
+vs. Solicitud de Compra) del cierre administrativo reactivo a la captura
+preventiva, para reducir el retraso actual de ~20 días hábiles entre fin
+de curso y pago/registro en GPS.
+**Estado:** exploración (arquitectura y modelo de datos decididos vía ADR;
+sin código de aplicación implementado todavía — ver `queue/_queue.json`)
+**Stack principal:** Python, Streamlit (hosting: Streamlit Community
+Cloud), Turso (libSQL)
 
 ## 2. Mapa del repositorio
 
