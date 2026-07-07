@@ -13,6 +13,13 @@
       "spec": "specs/modelo-datos-motor-validacion.md",
       "adr": "docs/adr/ADR-004-modelo-datos-motor-validacion.md",
       "notes": "ADR-004 aceptado. Asume Turso/libSQL (ADR-003), max 5 usuarios concurrentes. Modelo de datos y motor de validacion resueltos: horarios explicitos (hora_inicio/hora_fin), calculo de horas por curso completo, choque de horario como alerta no bloqueante, roster completo de RUT esperados por SC (sc_participantes_esperados). RN-001, RN-002 y RN-003 aprobadas por el dueño y creadas en docs/business-rules.md (2026-07-07). El motor de validacion (RN-001/002/003) vive en la capa de aplicacion Python, no en triggers de libSQL. Fuera de alcance: Excel poka-yoke, import CSV Teams, flujos borde (curso sin SC, carga retroactiva por lotes), entidad OTEC, generacion de PDF. Riesgo vigilado: si aparece un segundo camino de escritura a Turso que no pase por la app, RN-002/003 podrian violarse silenciosamente."
+    },
+    {
+      "slug": "captura-automatica-fricciones",
+      "status": "READY_FOR_ARCH",
+      "spec": "specs/captura-automatica-fricciones.md",
+      "adr": null,
+      "notes": "Spec creado a partir de la entrada de friction-log.md 2026-07-07 'La captura de fricciones depende de que el dueño del proyecto se acuerde de preguntar, no ocurre por iniciativa propia'. Evalua criticamente las 3 soluciones candidatas ya anotadas ahi (paso explicito en AGENTS.md, hook Stop, habito humano documentado) sin decidir por cuenta propia. Deja explicita la tension tecnica real de los hooks Stop/SessionEnd de Claude Code: Stop solo puede recordar en el turno siguiente (no fuerza reflexion en el momento) y si dispara en cada turno puede ser ruidoso; SessionEnd corre despues de terminada la sesion, sin inferencia posible. Recomienda evaluar primero una combinacion de Opcion 1 (paso explicito en AGENTS.md) con una version acotada de Opcion 2 (hook Stop condicionado, no en cada turno), viendo la Opcion 3 sola como el statu quo que ya produjo la friccion — pero la decision final queda para el dueño del proyecto via ADR. Nota relevante encontrada: docs/friction-log.md NO esta en PROTECTED_PATTERNS de .claude/hooks/protect_files.py hoy, cualquier agente ya puede escribir ahi sin bloqueo tecnico."
     }
   ]
 }
