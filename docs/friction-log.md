@@ -157,3 +157,21 @@ Nota: implementar cualquiera de estas opciones (en particular un hook
 nuevo) sería un cambio estructural (P3 de `AGENTS.md`: nueva integración)
 y requeriría su propio spec/ADR antes de tocar código — esta entrada deja
 la fricción documentada, no toma la decisión.
+
+> Implementado 2026-07-07 vía ADR-005
+> (`docs/adr/ADR-005-captura-automatica-fricciones.md`): combinación de
+> Opción 1 (paso explícito nuevo, sección 7 de `AGENTS.md`, que exige
+> proponer candidatas a friction-log antes de cerrar tareas Normal o
+> Estructural, y prohíbe escribir una entrada nueva sin anunciarla antes al
+> dueño del proyecto) + Opción 2 acotada (hook `Stop` nuevo
+> `.claude/hooks/stop_friction_reminder.py`, que no dispara en cada turno,
+> solo cuando la sesión editó `specs/`, un `DRAFT-*.md` de ADR o
+> `docs/business-rules.md`). Ver `docs/orquestacion-claude-code.md`,
+> sección 6. La señal de `transcript_path` se verificó viable en la
+> práctica (no fue necesario recurrir a la alternativa de respaldo `git
+> diff --name-only` anotada en ADR-005). **Pendiente:** la sección 7 de
+> `AGENTS.md` propuesta en ADR-005 todavía no fue aplicada — requiere
+> revisión y aprobación explícita del dueño del proyecto antes de escribirse
+> (P2 y sección 5 de `AGENTS.md`); el hook `Stop` ya está activo, pero el
+> texto que le da contenido accionable al recordatorio aún no vive en
+> `AGENTS.md`.

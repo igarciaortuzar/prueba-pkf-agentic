@@ -17,6 +17,7 @@ de Claude Code: **hooks**, **subagentes**, y un **archivo de cola**
 .claude/hooks/protect_files.py                  # bloquea Edit/Write sobre archivos protegidos
 .claude/hooks/protect_bash_writes.py            # bloquea escrituras directas via Bash a archivos protegidos (ADR-006)
 .claude/hooks/run_pkf_linter.sh                  # corre tools/check_refs.py tras cada edición
+.claude/hooks/stop_friction_reminder.py          # recuerda proponer fricciones al cierre de sesión, si hubo señal (ADR-005)
 .claude/agents/pkf-spec.md                      # rol 1: escribe specs, nunca toca código
 .claude/agents/pkf-architect.md                 # rol 2: valida contra business-rules + ADRs, deja un ADR en DRAFT
 .claude/agents/pkf-implementer.md                # rol 3: implementa según spec + ADR aceptado
@@ -40,6 +41,7 @@ hay que reiniciar para que tome el cambio.
 | El linter de referencia (`tools/check_refs.py`) depende de que alguien se acuerde de correrlo | Hook `PostToolUse` lo corre automáticamente tras cada edición y fuerza a corregir si falla |
 | La idea abierta en `docs/friction-log.md` (2026-07-03): extender la regla de diff-antes-de-guardar a más archivos protegidos | `PROTECTED_PATTERNS` vive en `protected_patterns.py`, módulo compartido entre `protect_files.py` y `protect_bash_writes.py` — agregar un archivo nuevo es una línea, y ambos hooks quedan sincronizados |
 | Crear/obsoletar una RN sin depender de que un hook heurístico "deje pasar por accidente" un heredoc de `Bash` | `tools/add_business_rule.py` (subcomandos `create`/`deprecate`) es el único camino sancionado, con validación de formato y numeración antes de escribir |
+| La captura de fricciones depende de que el dueño del proyecto se acuerde de preguntar al final de la sesión (`docs/friction-log.md`, 2026-07-07) | Hook `Stop` nuevo (`stop_friction_reminder.py`, ADR-005), acotado: solo si la sesión editó `specs/`, un `DRAFT-*.md` de ADR o `docs/business-rules.md`, bloquea el cierre de sesión (código de salida 2) con un recordatorio de proponer fricciones candidatas — combinado con el paso explícito de `AGENTS.md` sección 7 |
 | Necesitas un pipeline de trabajo, no solo un agente genérico | 4 subagentes con roles y herramientas acotadas: `pkf-spec` → `pkf-architect` → `pkf-implementer` → `pkf-auditor` |
 
 ## 3. Cómo se ve un flujo real
@@ -184,7 +186,84 @@ formalizada en ADR-006. Tampoco se verifica *quién* invoca
 dueño — eso sigue siendo responsabilidad de la sesión de Claude Code, igual
 que con cualquier edición de `business-rules.md` hoy.
 
-## 6. Siguientes pasos sugeridos (no incluidos aún)
+## 6. Recordatorio de fricciones al cierre de sesión (ADR-005)
+
+Ver `ADR-005` (`docs/adr/ADR-005-captura-automatica-fricciones.md`) para la
+decisión completa y su razonamiento. Esta sección es la guía operativa, con
+el mismo nivel de detalle que la sección 5.
+
+**El problema que cierra:** `docs/friction-log.md` (entrada 2026-07-07, "La
+captura de fricciones depende de que el dueño del proyecto se acuerde de
+preguntar, no ocurre por iniciativa propia") documentó que ninguna fricción
+se propuso por iniciativa de la IA durante toda una sesión de trabajo; las
+únicas entradas registradas ese día existieron porque el dueño del proyecto
+preguntó explícitamente al cierre.
+
+**Cómo funciona `stop_friction_reminder.py`:** hook `Stop` nuevo, registrado
+en `.claude/settings.json` sin `matcher` (se dispara al final de cada
+intento de cierre de sesión), que decide:
+
+1. Si `stop_hook_active` es `true` (Claude Code ya está en un ciclo de
+   continuación disparado por un `Stop` hook previo en este mismo turno),
+   sale de inmediato con código 0 sin imprimir nada — evita un bucle de
+   recordatorios.
+2. Si no, lee y parsea `transcript_path` (JSONL con la transcripción
+   completa de la sesión) buscando bloques `tool_use` de `Edit`/`Write`
+   cuyo `input.file_path` matchee `specs/*.md`, `docs/adr/DRAFT-*.md` o
+   `docs/business-rules.md`.
+3. Si no encuentra ninguna coincidencia, sale con código 0 en silencio — no
+   hay señal de trabajo no trivial en la sesión, no interrumpe sesiones
+   triviales.
+4. Si encuentra al menos una coincidencia, sale con código 2 e imprime en
+   `stderr` un recordatorio: antes de cerrar, proponer explícitamente
+   cualquier fricción real encontrada (o decir explícitamente que no hay
+   ninguna) — nunca escribir una entrada nueva en `docs/friction-log.md` en
+   silencio. Un código de salida 2 en un hook `Stop` impide que la sesión
+   termine y entrega el `stderr` como contexto para el turno siguiente.
+5. Cualquier error de lectura/parseo (`transcript_path` inexistente,
+   ilegible, o con líneas de JSON inválido) se trata igual que en
+   `protect_files.py`/`protect_bash_writes.py`: no bloquear por un problema
+   del propio hook — sale con código 0.
+
+**Formato real de `transcript_path`, verificado durante la implementación
+(no solo asumido del ADR):** cada línea del JSONL es un objeto
+independiente; las líneas de tipo `"assistant"` traen `message.content`,
+una lista de bloques, y los bloques de herramienta tienen `type ==
+"tool_use"`, `name` (nombre de la herramienta) e `input` (con `file_path`
+para `Edit`/`Write`) — una anidación algo más profunda que la descripción
+informal del ADR ("entradas `tool_use` con `tool_name` e
+`input.file_path`"), pero la misma señal en sustancia. Se verificó leyendo
+el `transcript_path` real de la sesión de implementación de este mismo
+hook (ver ADR-005, "Consecuencias" > "Dependencia de un detalle no
+verificado en producción"), y **no** fue necesario recurrir a la
+alternativa de respaldo (`git diff --name-only`) que el ADR dejó anotada
+para el caso de que el formato no resultara viable.
+
+**Requisito de "nunca en silencio" (`AGENTS.md` sección 7):** el hook solo
+puede recordar, no puede verificar la calidad de la respuesta del agente en
+el turno siguiente. El guardrail de fondo — que el agente nunca escriba una
+entrada nueva en `docs/friction-log.md` sin anunciarla antes al dueño del
+proyecto (qué encontró + su intención) — vive como texto explícito en
+`AGENTS.md` sección 7, no en el hook. **Nota:** al momento de escribir esta
+sección, la sección 7 de `AGENTS.md` propuesta en ADR-005 sigue pendiente de
+que el dueño del proyecto la revise y aplique (o pida al orquestador
+aplicarla mostrando el diff completo antes de guardar, por P2 y sección 5 de
+`AGENTS.md`) — el hook ya está activo, pero el texto que le da contenido
+accionable al recordatorio todavía no está en `AGENTS.md`.
+
+**Límites honestos (no resueltos por este hook, ya documentados en
+ADR-005):** un hook `Stop` no puede forzar "reflexión" en el instante
+exacto de cerrar la tarea, solo impedir que la sesión termine y entregar un
+mensaje que la IA lee y actúa en el turno *siguiente*. Y la señal se basa en
+llamadas a `Edit`/`Write` en el transcript: una escritura a un archivo
+protegido hecha vía `Bash` (heredoc, `sed -i`, etc.) no dispara este
+recordatorio, porque el `tool_name` registrado sería `Bash`, no `Edit`/
+`Write` — mismo gap ya conocido y documentado para `protect_files.py`
+(sección 2), ahora también presente aquí; no es objeto de este mecanismo,
+lo cierra parcialmente `protect_bash_writes.py` (sección 5) para el caso de
+*bloqueo* de escritura, pero no agrega esa señal a este recordatorio.
+
+## 7. Siguientes pasos sugeridos (no incluidos aún)
 
 - ~~Agregar un hook `PreToolUse` sobre `Bash` para bloquear escrituras
   directas a archivos protegidos~~ — implementado 2026-07-07, ver sección 5
