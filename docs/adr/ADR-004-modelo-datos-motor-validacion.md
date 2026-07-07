@@ -1,7 +1,7 @@
-# ADR-XXX — Modelo de datos y motor de validación preventiva sobre Turso/libSQL
+# ADR-004 — Modelo de datos y motor de validación preventiva sobre Turso/libSQL
 
 **Fecha:** 2026-07-07
-**Estado:** propuesta
+**Estado:** aceptada
 
 ## Contexto
 

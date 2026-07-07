@@ -11,8 +11,8 @@
       "slug": "modelo-datos-motor-validacion",
       "status": "READY_FOR_BUILD",
       "spec": "specs/modelo-datos-motor-validacion.md",
-      "adr": "docs/adr/DRAFT-modelo-datos-motor-validacion.md",
-      "notes": "Asume Turso/libSQL (ADR-003), max 5 usuarios concurrentes. Modelo de datos y motor de validacion resueltos: horarios explicitos (hora_inicio/hora_fin), calculo de horas por curso completo, choque de horario como alerta no bloqueante, roster completo de RUT esperados por SC (sc_participantes_esperados). RN-001, RN-002 y RN-003 aprobadas por el dueño y creadas en docs/business-rules.md (2026-07-07). Sin preguntas abiertas bloqueantes. Fuera de alcance: Excel poka-yoke, import CSV Teams, flujos borde (curso sin SC, carga retroactiva por lotes), entidad OTEC, generacion de PDF. Propuesta de ADR en docs/adr/DRAFT-modelo-datos-motor-validacion.md: decide que el motor de validacion (RN-001/002/003) vive en la capa de aplicacion Python, no en triggers de libSQL."
+      "adr": "docs/adr/ADR-004-modelo-datos-motor-validacion.md",
+      "notes": "ADR-004 aceptado. Asume Turso/libSQL (ADR-003), max 5 usuarios concurrentes. Modelo de datos y motor de validacion resueltos: horarios explicitos (hora_inicio/hora_fin), calculo de horas por curso completo, choque de horario como alerta no bloqueante, roster completo de RUT esperados por SC (sc_participantes_esperados). RN-001, RN-002 y RN-003 aprobadas por el dueño y creadas en docs/business-rules.md (2026-07-07). El motor de validacion (RN-001/002/003) vive en la capa de aplicacion Python, no en triggers de libSQL. Fuera de alcance: Excel poka-yoke, import CSV Teams, flujos borde (curso sin SC, carga retroactiva por lotes), entidad OTEC, generacion de PDF. Riesgo vigilado: si aparece un segundo camino de escritura a Turso que no pase por la app, RN-002/003 podrian violarse silenciosamente."
     }
   ]
 }
