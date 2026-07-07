@@ -31,7 +31,7 @@ ROOT = find_root()
 RN_DEF = re.compile(r"^###\s+(RN-\d{3})\b", re.MULTILINE)
 RN_REF = re.compile(r"\b(RN-\d{3})\b")
 ADR_REF = re.compile(r"\b(ADR-\d{3})\b")
-SKIP_DIRS = {".git", "node_modules", "__pycache__", ".venv", "venv", "examples", "testing", ".claude", ".vscode"}
+SKIP_DIRS = {".git", "node_modules", "__pycache__", ".venv", "venv", "examples", "testing", "tests", ".claude", ".vscode"}
 TEXT_EXT = {".md", ".py", ".yaml", ".yml", ".json", ".txt", ".sql", ".js", ".ts"}
 
 
