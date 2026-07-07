@@ -112,3 +112,38 @@ solo un riesgo anticipado en el papel.
 ya anotado en ADR-002 / `docs/orquestacion-claude-code.md`, cuando haya al
 menos 2-3 items de la cola simultáneamente independientes entre sí que lo
 justifiquen.
+
+---
+
+### 2026-07-07 — La captura de fricciones depende de que el dueño del proyecto se acuerde de preguntar, no ocurre por iniciativa propia
+**Proyecto:** Sistema de Validación Preventiva y Libro de Clases Digital (pipeline PKF con Claude Code).
+**Qué pasó:** durante toda esta sesión (instalación del kit, specs, ADRs,
+RN, implementación del scaffold) ninguna fricción se registró en este
+archivo por iniciativa de la IA. Las tres entradas anteriores del
+2026-07-07 solo existen porque el dueño del proyecto preguntó
+explícitamente, al final de la sesión, "¿encontraste alguna fricción?". Si
+no hubiera preguntado, esas fricciones — incluyendo un bug real de
+permisos en `pkf-spec` — se habrían perdido al cerrar la sesión. Esto
+contradice directamente el principio fundacional de PKF ("el framework
+crece por extracción, ver friction-log.md") si la extracción misma depende
+de que un humano se acuerde de pedirla en vez de ser parte natural del
+flujo de trabajo.
+**Frecuencia:** primera vez verbalizada, pero aplica retroactivamente a
+toda la sesión: ni la sesión principal ni ningún subagente propuso una
+entrada de friction-log sin que se le preguntara.
+**Solución candidata:** ninguna implementada todavía — son ideas abiertas,
+no una decisión:
+- Agregar un paso explícito en `AGENTS.md` (sección 6, o una nueva) que
+  pida proponer candidatas a friction-log antes de cerrar cualquier tarea
+  no trivial, en vez de esperar a que se pregunte.
+- Un hook `Stop` de Claude Code (análogo al `SessionStart` que ya inyecta
+  `AGENTS.md`) que recuerde, al final de cada sesión, revisar si hubo
+  fricciones sin registrar.
+- Aceptar que sea un hábito humano deliberado — documentado
+  explícitamente en vez de dejarlo implícito, para que no dependa de la
+  memoria de una sola persona.
+
+Nota: implementar cualquiera de estas opciones (en particular un hook
+nuevo) sería un cambio estructural (P3 de `AGENTS.md`: nueva integración)
+y requeriría su propio spec/ADR antes de tocar código — esta entrada deja
+la fricción documentada, no toma la decisión.
