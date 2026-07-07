@@ -94,6 +94,16 @@ Alternativa más simple: dejarlo como está y confiar en la disciplina de
 no de un guardrail duro, que es justamente el problema que motivó crear los
 hooks en primer lugar (ver ADR-002).
 
+> Implementado 2026-07-07 vía ADR-006 (`docs/adr/ADR-006-hook-proteccion-bash.md`):
+> hook `PreToolUse` nuevo `.claude/hooks/protect_bash_writes.py` (mecanismo
+> "Bloqueo real con excepciones auditables") bloquea con código de salida 2
+> los comandos de `Bash` que escriban directamente sobre `PROTECTED_PATTERNS`
+> (módulo compartido `protected_patterns.py`), con dos excepciones auditables:
+> el `mv`/`git mv` exacto de promoción de ADR, y la invocación del script
+> sancionado `tools/add_business_rule.py` (subcomandos `create`/`deprecate`)
+> como único camino legítimo para crear/obsoletar RN vía `Bash`. Ver
+> `docs/orquestacion-claude-code.md`, sección 5.
+
 ---
 
 ### 2026-07-07 — El pipeline secuencial se sintió lento en la práctica

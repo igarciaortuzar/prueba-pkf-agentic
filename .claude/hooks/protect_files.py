@@ -19,20 +19,18 @@ para ADRs en borrador vs aceptados -- usa una convencion de nombres:
     "Estado:" a "aceptada". Ese renombrado/mv es lo que activa la proteccion,
     no algo que un agente decide por su cuenta.
 
-AJUSTA esta lista si extiendes el guardrail a mas archivos (ver
-docs/friction-log.md, entrada 2026-07-03).
+AJUSTA la lista PROTECTED_PATTERNS en protected_patterns.py si extiendes el
+guardrail a mas archivos (ver docs/friction-log.md, entrada 2026-07-03).
+
+Nota (ADR-006): PROTECTED_PATTERNS vive en protected_patterns.py, modulo
+compartido con .claude/hooks/protect_bash_writes.py, para no duplicar la
+lista en dos archivos.
 """
 import json
 import re
 import sys
 
-PROTECTED_PATTERNS = [
-    r"(^|/)AGENTS\.md$",
-    r"(^|/)docs/business-rules\.md$",
-    r"(^|/)docs/adr/ADR-\d{3}-.*\.md$",
-    # Agrega aqui otros archivos protegidos segun vayas extendiendo el guardrail
-    # (esta era la idea abierta en el friction-log de PKF).
-]
+from protected_patterns import PROTECTED_PATTERNS
 
 
 def main() -> None:
