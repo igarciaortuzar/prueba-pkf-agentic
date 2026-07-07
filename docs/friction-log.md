@@ -49,3 +49,66 @@ impacto — business-rules.md, ADRs aceptados.
 > Implementado 2026-07-07 vía hooks de Claude Code (`PreToolUse` bloquea
 > `Edit`/`Write` sobre esos archivos con código de salida 2). Ver ADR-002 y
 > `docs/orquestacion-claude-code.md`.
+
+---
+
+### 2026-07-07 — `pkf-spec` no tenía permiso `Write` pese a que su rol lo exige
+**Proyecto:** Sistema de Validación Preventiva y Libro de Clases Digital (pipeline PKF con Claude Code).
+**Qué pasó:** el subagente `pkf-spec` (heredado del kit de instalación) tenía
+`tools: Read, Grep, Glob` — sin `Write` — pese a que sus instrucciones de rol
+dicen explícitamente "Escribe (o actualiza) `specs/<slug>.md`" y "Actualiza
+`queue/_queue.json`". La primera vez que se invocó para un item real, no
+pudo persistir nada: devolvió el contenido completo en su respuesta para
+que el orquestador (sesión principal) lo grabara manualmente. Se corrigió
+agregando `Write` a su lista de `tools`.
+**Frecuencia:** primera vez (detectado al primer uso real del subagente).
+**Solución candidata:** al instalar o modificar cualquier subagente,
+verificar que su lista de `tools` sea consistente con las acciones que sus
+instrucciones de rol le piden ejecutar — ya aplicado a `pkf-spec`, vale la
+pena revisar `pkf-architect`, `pkf-implementer` y `pkf-auditor` si se les
+agregan responsabilidades nuevas en el futuro.
+
+---
+
+### 2026-07-07 — La protección de archivos (hook `PreToolUse`) no cubre `Bash`
+**Proyecto:** Sistema de Validación Preventiva y Libro de Clases Digital (pipeline PKF con Claude Code).
+**Qué pasó:** `protect_files.py` bloquea `Edit`/`Write` sobre `AGENTS.md`,
+`docs/business-rules.md` y ADRs aceptados, pero no intercepta la
+herramienta `Bash`. ADR-002 ya anotaba esto como decisión de diseño para
+permitir el `mv` humano de promoción de ADR — pero en esta sesión se usó el
+mismo camino para escribir contenido nuevo directamente en
+`docs/business-rules.md` (crear RN-001/RN-002/RN-003) vía un heredoc de
+Bash, un caso más amplio que el originalmente previsto. En la práctica, la
+única barrera contra que el propio orquestador (o un subagente con acceso a
+`Bash`) escriba en un archivo "protegido" es que decida seguir la
+instrucción de mostrar el diff antes de guardar — no hay bloqueo técnico
+real para ese camino.
+**Frecuencia:** dos veces en esta sesión (promoción de ADR-003 y ADR-004
+vía `git mv`, y creación de RN-001/002/003 vía heredoc).
+**Solución candidata:** evaluar si vale la pena que `protect_files.py` (o un
+hook `PreToolUse` nuevo sobre `Bash`) intente detectar comandos que escriban
+directamente sobre rutas protegidas, aceptando que una heurística sobre
+texto de comando nunca será tan confiable como interceptar por herramienta.
+Alternativa más simple: dejarlo como está y confiar en la disciplina de
+"mostrar diff antes de guardar" — pero eso depende de que la IA lo recuerde,
+no de un guardrail duro, que es justamente el problema que motivó crear los
+hooks en primer lugar (ver ADR-002).
+
+---
+
+### 2026-07-07 — El pipeline secuencial se sintió lento en la práctica
+**Proyecto:** Sistema de Validación Preventiva y Libro de Clases Digital (pipeline PKF con Claude Code).
+**Qué pasó:** el dueño del proyecto notó que el ritmo de trabajo (spec →
+architect → aprobación humana → implementer → auditor, un item de la cola a
+la vez) se sentía lento, y preguntó dos veces si los subagentes podían
+correr en paralelo. La respuesta es parcial: dentro de un mismo item los 4
+roles tienen dependencias reales secuenciales (no paraleliza), pero entre
+items independientes de la cola sí sería posible, usando git worktrees por
+slug — mecanismo que ADR-002 ya anotaba como "siguiente paso, no incluido
+aún". Esta sesión confirma que es una fricción real sentida al trabajar, no
+solo un riesgo anticipado en el papel.
+**Frecuencia:** primera vez verbalizada.
+**Solución candidata:** implementar el mecanismo de git worktrees por slug
+ya anotado en ADR-002 / `docs/orquestacion-claude-code.md`, cuando haya al
+menos 2-3 items de la cola simultáneamente independientes entre sí que lo
+justifiquen.
