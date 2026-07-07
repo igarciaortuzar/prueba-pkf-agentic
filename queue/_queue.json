@@ -6,6 +6,12 @@
       "spec": "specs/hosting-y-persistencia-turso.md",
       "adr": "docs/adr/ADR-003-hosting-y-persistencia-turso.md",
       "notes": "ADR-003 aceptado. Decision de arquitectura: Streamlit Community Cloud + Turso (libSQL) en reemplazo de SQLite local, con autenticacion por contraseña compartida para OTECs externas. Alcance limitado a hosting/persistencia; el resto de la propuesta (motor de validacion, Excel poka-yoke, import CSV Teams) queda para specs futuros. Riesgos vigilados a resolver durante la implementacion (ver ADR-003, seccion Consecuencias): limites reales del tier gratuito de Turso, si la contraseña compartida es global o por OTEC, donde/como se gestiona y rota, y requisitos de residencia de datos de CODELCO/OTIC."
+    },
+    {
+      "slug": "modelo-datos-motor-validacion",
+      "status": "READY_FOR_ARCH",
+      "spec": "specs/modelo-datos-motor-validacion.md",
+      "notes": "Asume Turso/libSQL (ADR-003) como motor de datos, max 5 usuarios concurrentes. Cubre modelo de datos (articulos, cursos, participantes, asistencias) partiendo de un boceto con brechas criticas identificadas (falta campo de participantes cargados en SC, modulo_horario sin horas de reloj, sin duracion de colacion, sin maquina de estados de curso, sin campos de auditoria, entre otras — ver seccion 'Observaciones sobre el boceto' del spec) y formaliza 3 reglas de validacion preventiva (choque de horarios, cobertura de horas del articulo, calce de participantes vs SC) como candidatas a RN-xxx pendientes de aprobacion explicita del dueño del proyecto (no se escribieron en docs/business-rules.md, protegido por P2 de AGENTS.md). Fuera de alcance: Excel poka-yoke, import CSV Teams, flujos borde (curso sin SC, carga retroactiva por lotes), generacion de PDF."
     }
   ]
 }
