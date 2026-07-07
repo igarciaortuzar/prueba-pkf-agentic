@@ -18,6 +18,7 @@ de contexto externo.
 | Las reglas de negocio | `docs/business-rules.md` |
 | Por qué se decidió algo | `docs/adr/` |
 | Convenciones de docs | `docs/CONVENTIONS.md` |
+| Cómo Claude Code aplica PKF automáticamente | `docs/orquestacion-claude-code.md` |
 
 ## Cómo empezar
 

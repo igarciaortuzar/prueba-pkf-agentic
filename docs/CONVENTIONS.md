@@ -10,6 +10,7 @@
 | `friction-log.md` | Bitácora de fricciones del framework (alimenta futuras versiones de PKF). |
 | `examples/` | Patrones de referencia ilustrativos (ej. ADRs de ejemplo). No son reglas ni decisiones vigentes en este proyecto. |
 | `testing/` | Protocolos de validación del framework mismo (no del proyecto de negocio). |
+| `orquestacion-claude-code.md` | Cómo PKF se aplica mediante hooks y subagentes de Claude Code (ver ADR-002). |
 
 Cuando se agregue un documento nuevo a `docs/`, se registra en esta tabla.
 Un documento que no está en el índice no existe para efectos del proyecto.
@@ -43,6 +44,9 @@ Los números no se reutilizan nunca, ni siquiera si la regla queda obsoleta.
 
 - Minúsculas, guiones, sin tildes ni espacios: `flujo-de-aprobacion.md`.
 - ADRs: `ADR-001-titulo-corto.md` (numeración correlativa, tres dígitos).
+  Una propuesta aún no aceptada se escribe como `DRAFT-titulo-corto.md`
+  (sin número); promoverla es renombrarla a `ADR-0XX-titulo-corto.md` y
+  cambiar su `Estado:` a `aceptada` (ver ADR-002).
 
 ## Diagramas
 

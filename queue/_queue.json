@@ -1,0 +1,11 @@
+{
+  "items": [
+    {
+      "slug": "ejemplo-extender-guardrail-adr",
+      "status": "READY_FOR_ARCH",
+      "spec": "specs/ejemplo-extender-guardrail-adr.md",
+      "adr": null,
+      "notes": "Item de ejemplo -- borralo cuando crees el primero real."
+    }
+  ]
+}
