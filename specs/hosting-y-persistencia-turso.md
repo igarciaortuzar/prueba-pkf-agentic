@@ -90,9 +90,17 @@ licenciamiento por usuario.
 - ¿Dónde y cómo se gestiona/rota la contraseña compartida (Streamlit
   secrets, variable de entorno, proceso de cambio periódico, quién es
   responsable)?
-- Streamlit Community Cloud "duerme" las apps por inactividad (comportamiento
-  conocido de la plataforma): ¿existe algún requisito de disponibilidad que
-  esto pueda incumplir, dado que el sistema activa pagos a proveedores?
+- ~~Streamlit Community Cloud "duerme" las apps por inactividad...~~
+  **Resuelta:** el sleep afecta solo al contenedor de la app (demora de
+  arranque de ~30-60s para el primer visitante tras un período sin uso), no
+  a los datos — la persistencia ya vive en Turso, independiente del estado
+  de Streamlit Cloud. Dado el patrón de uso esperado (varias visitas por
+  semana mientras hay cursos activos), no representa un riesgo de
+  integridad de pagos ni de cierre de cursos, solo una demora ocasional de
+  UX. No se agrega infraestructura para esto ahora. Mitigación de reserva,
+  gratuita y sin dependencias nuevas, si en la práctica molesta: un ping
+  periódico vía GitHub Actions programado que visite la URL cada par de
+  días para evitar que la app entre en sleep.
 - ¿Hay algún requisito contractual de CODELCO/OTIC sobre residencia de datos
   (soberanía de datos, país del proveedor cloud) que Turso deba cumplir?
 - ¿Qué pasa si el pricing gratuito de Turso cambia en el futuro? No bloquea
